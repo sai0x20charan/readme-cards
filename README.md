@@ -1,4 +1,4 @@
-# GitHub Contribution Graph Generator
+# GitView
 
 A fast, reliable alternative to broken third-party GitHub contribution graph widgets. Generates dynamic SVG graphs for your GitHub profile README, portfolio, or documentation with support for custom visualization types, color themes, streak statistics, and dual-engine data fetching.
 
@@ -9,7 +9,7 @@ A fast, reliable alternative to broken third-party GitHub contribution graph wid
 | Type | URL Parameter | Description |
 | :--- | :--- | :--- |
 | **Contribution Calendar** | `type=calendar` (default) | Classic GitHub 52-week heatmap squares |
-| **Activity Curve** | `type=graph` (or `type=activity`) | Smooth glowing bezier wave line & gradient area fill showing commit peaks |
+| **Activity Curve** | `type=graph` (or `type=activity`) | Smooth curve through true per-day values, no averaging |
 | **Streak Stats Card** | `type=streak` | Flame streak badge showing Current Streak, Longest Streak, and Daily Average |
 | **Monthly Bar Chart** | `type=bar` | Monthly volume distribution bar chart with count labels |
 | **Weekday Habit** | `type=weekday` | Sunday through Saturday productivity breakdown |
@@ -21,7 +21,7 @@ A fast, reliable alternative to broken third-party GitHub contribution graph wid
 ### 1. Classic Contribution Calendar
 
 ```markdown
-[![GitHub Contributions](http://localhost:3000/api/graph?username=torvalds&type=calendar&theme=github-dark)](https://github.com/torvalds)
+[![GitView](http://localhost:3000/api/graph?username=torvalds&type=calendar&theme=github-dark)](https://github.com/torvalds)
 ```
 
 ### 2. Activity Curve / Wave Graph

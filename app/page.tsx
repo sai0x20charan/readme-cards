@@ -3,26 +3,96 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { THEMES } from '@/lib/themes';
 import { GraphType, TimeRange } from '@/lib/types';
-import {
-  Copy,
-  Check,
-  ExternalLink,
-  RefreshCw,
-  Sliders,
-  Palette,
-  Code2,
-  Sparkles,
-  Flame,
-  Calendar,
-  Layers,
-  Terminal,
-  Download,
-  AlertCircle,
-  TrendingUp,
-  BarChart3,
-  Clock,
-  LayoutGrid
-} from 'lucide-react';
+
+/* ─── inline icons ─── */
+const IconRefresh = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.2M22 12.5a10 10 0 0 1-18.8 4.2" />
+  </svg>
+);
+const IconExternal = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
+  </svg>
+);
+const IconCopy = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+);
+const IconCheck = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="20 6 9 17 4 12" />
+  </svg>
+);
+const IconChevron = ({ open }: { open: boolean }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform duration-200 ${open ? 'rotate-90' : ''}`}>
+    <polyline points="9 18 15 12 9 6" />
+  </svg>
+);
+const IconArrow = () => (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+  </svg>
+);
+
+/* ─── visualization type mini-previews: each icon mirrors the real chart ─── */
+const IconHeatmap = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    {[
+      [1, 1, 0.25], [5.5, 1, 0.5], [10, 1, 0.9], [14, 1, 1],
+      [1, 5.5, 0.5], [5.5, 5.5, 1], [10, 5.5, 0.35], [14, 5.5, 0.75],
+      [1, 10, 0.9], [5.5, 10, 0.35], [10, 10, 1], [14, 10, 0.5],
+      [1, 14, 0.15], [5.5, 14, 0.65], [10, 14, 0.5], [14, 14, 0.9],
+    ].map(([x, y, o], i) => (
+      <rect key={i} x={x} y={y} width="3.2" height="3.2" rx="0.8" fill="currentColor" opacity={o} />
+    ))}
+  </svg>
+);
+const IconWave = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <path
+      d="M1 13.5 C3.5 13.5 4 8.5 6.5 8.5 C9 8.5 9.5 13 12 12 C13.8 11.2 15 6.5 17 5.5"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      fill="none"
+    />
+    <circle cx="6.5" cy="8.5" r="1.4" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.4" fill="currentColor" />
+    <circle cx="17" cy="5.5" r="1.4" fill="currentColor" />
+  </svg>
+);
+const IconStreakCard = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <rect x="1.5" y="2.5" width="15" height="13" rx="2.5" stroke="currentColor" strokeWidth="1.4" opacity="0.6" />
+    <path
+      d="M9 5.2c-1.5 1.5-2.6 2.7-2.6 4.3a2.6 2.6 0 0 0 5.2 0c0-.6-.2-1.1-.5-1.6-.4.3-.7.7-.9 1.1-.2-.8-.5-2.2-1.2-3.8Z"
+      fill="currentColor"
+    />
+    <rect x="11.2" y="6.2" width="3.3" height="1.3" rx="0.65" fill="currentColor" opacity="0.45" />
+    <rect x="11.2" y="8.4" width="2.3" height="1.3" rx="0.65" fill="currentColor" opacity="0.3" />
+  </svg>
+);
+const IconBars = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <rect x="1.5" y="9" width="2.8" height="6" rx="0.8" fill="currentColor" opacity="0.35" />
+    <rect x="5.6" y="6" width="2.8" height="9" rx="0.8" fill="currentColor" opacity="0.55" />
+    <rect x="9.7" y="3" width="2.8" height="12" rx="0.8" fill="currentColor" opacity="0.85" />
+    <rect x="13.8" y="7.5" width="2.8" height="7.5" rx="0.8" fill="currentColor" opacity="1" />
+  </svg>
+);
+const IconWeekdays = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+    <rect x="1.5" y="2.5" width="2.4" height="2.4" rx="0.7" fill="currentColor" opacity="0.9" />
+    <rect x="5.2" y="2.5" width="11.3" height="2.4" rx="1.2" fill="currentColor" opacity="0.85" />
+    <rect x="1.5" y="6.6" width="2.4" height="2.4" rx="0.7" fill="currentColor" opacity="0.5" />
+    <rect x="5.2" y="6.6" width="7.5" height="2.4" rx="1.2" fill="currentColor" opacity="0.55" />
+    <rect x="1.5" y="10.7" width="2.4" height="2.4" rx="0.7" fill="currentColor" opacity="0.35" />
+    <rect x="5.2" y="10.7" width="9.5" height="2.4" rx="1.2" fill="currentColor" opacity="0.7" />
+    <rect x="1.5" y="14.2" width="1" height="1" rx="0.5" fill="currentColor" opacity="0.4" />
+  </svg>
+);
 
 export default function Home() {
   const [username, setUsername] = useState('torvalds');
@@ -54,11 +124,8 @@ export default function Home() {
     dailyAverage: number;
   } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [optionsOpen, setOptionsOpen] = useState(false);
 
-  // Quick user presets
-  const presets = ['torvalds', 'shadcn', 'antfu', 'yyx990803', 'sindresorhus'];
-
-  // Construct query string
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.set('username', username.trim());
@@ -83,7 +150,6 @@ export default function Home() {
     return params.toString();
   }, [username, graphType, range, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, customTitle, cacheBuster]);
 
-  // Construct endpoint URLs
   const [origin, setOrigin] = useState('');
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -94,7 +160,6 @@ export default function Home() {
   const relativeUrl = `/api/graph?${queryString}`;
   const fullUrl = origin ? `${origin}${relativeUrl}` : relativeUrl;
 
-  // Fetch JSON stats whenever username changes
   useEffect(() => {
     let isCancelled = false;
     async function loadStats() {
@@ -144,80 +209,70 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Embed code snippets
   const cleanFullUrl = fullUrl.replace('&refresh=1', '');
   const embedCodes = {
-    markdown: `[![${username}'s Contribution Graph](${cleanFullUrl})](https://github.com/${username})`,
-    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s Contribution Graph" />\n</a>`,
+    markdown: `[![${username}'s GitView](${cleanFullUrl})](https://github.com/${username})`,
+    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s GitView" />\n</a>`,
     url: cleanFullUrl,
     json: `${origin || ''}/api/data?username=${encodeURIComponent(username)}`,
-    action: `name: Update Contribution Graph SVG
-on:
-  schedule:
-    - cron: '0 0 * * *' # Every midnight
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Generate SVG
-        run: |
-          curl -s "${cleanFullUrl}" -o github-contribution-grid.svg
-      - name: Commit and Push
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add github-contribution-grid.svg
-          git commit -m "chore: update contribution graph" || exit 0
-          git push`,
+    action: `name: Update GitView SVG\non:\n  schedule:\n    - cron: '0 0 * * *'\n  workflow_dispatch:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Generate SVG\n        run: |\n          curl -s "${cleanFullUrl}" -o gitview.svg\n      - name: Commit and Push\n        run: |\n          git config --global user.name "github-actions[bot]"\n          git config --global user.email "github-actions[bot]@users.noreply.github.com"\n          git add gitview.svg\n          git commit -m "chore: update gitview" || exit 0\n          git push`,
   };
 
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100">
-      {/* Navigation header */}
-      <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-              <Calendar className="w-4 h-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="font-semibold text-slate-100 text-base">GitHub Contribution Graph</h1>
-                <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  Reliable
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Custom graphs, streaks, and heatmap embeds for profile READMEs</p>
-            </div>
-          </div>
+  const graphTypes: { id: GraphType; label: string; desc: string; Icon: () => React.JSX.Element }[] = [
+    { id: 'calendar', label: 'Heatmap', desc: '52-week contribution grid', Icon: IconHeatmap },
+    { id: 'graph', label: 'Activity Curve', desc: 'Daily values, no averaging', Icon: IconWave },
+    { id: 'streak', label: 'Streak Card', desc: 'Current & best streaks', Icon: IconStreakCard },
+    { id: 'bar', label: 'Monthly Bars', desc: 'Volume per month', Icon: IconBars },
+    { id: 'weekday', label: 'Weekday Habits', desc: 'Mon–Sun pattern', Icon: IconWeekdays },
+  ];
 
-          <div className="flex items-center gap-3">
+  const statItems = stats ? [
+    { value: stats.totalContributions.toLocaleString(), label: 'contributions' },
+    { value: `${stats.currentStreak}`, label: 'day streak' },
+    { value: `${stats.longestStreak}`, label: 'best streak' },
+    { value: `${stats.dailyAverage}`, label: 'daily avg' },
+  ] : [];
+
+  return (
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
+      {/* ─── Header ─── */}
+      <header className="border-b border-zinc-800/60 backdrop-blur-md bg-zinc-950/80 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 h-14 sm:h-15 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <span className="text-base font-bold tracking-tight text-zinc-100">GitView</span>
+          </div>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => setCacheBuster((v) => v + 1)}
+              title="Refresh preview"
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors"
+            >
+              <IconRefresh />
+            </button>
             <a
-              href="https://github.com"
+              href={fullUrl}
               target="_blank"
               rel="noreferrer"
-              className="text-xs text-slate-400 hover:text-slate-200 transition flex items-center gap-1.5 py-1.5 px-3 rounded-md bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60"
+              title="Open SVG in new tab"
+              className="p-2 rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/80 transition-colors"
             >
-              <Terminal className="w-3.5 h-3.5" />
-              API Docs
+              <IconExternal />
             </a>
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Controls column (5 cols) */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Username Input Card */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm">
-              <label className="block text-xs font-medium uppercase tracking-wider text-slate-400 mb-2">
+      {/* ─── Main Content ─── */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-6 sm:px-8 py-8 sm:py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-[330px_minmax(0,1fr)] gap-8 lg:gap-10 items-start">
+
+          {/* ─── Sidebar Controls ─── */}
+          <aside className="space-y-7 lg:sticky lg:top-20">
+
+            {/* Username Input */}
+            <div className="space-y-2">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
                 GitHub Username
               </label>
               <form onSubmit={handleSubmit} className="flex gap-2">
@@ -225,145 +280,76 @@ jobs:
                   type="text"
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
-                  placeholder="e.g. torvalds"
-                  className="flex-1 bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
+                  placeholder="Enter username..."
+                  spellCheck={false}
+                  className="flex-1 min-w-0 bg-zinc-900/70 border border-zinc-800 rounded-lg px-3.5 py-2.5 text-sm text-zinc-100 focus:outline-none focus:border-zinc-500 focus:bg-zinc-900 transition placeholder:text-zinc-600"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-medium text-sm rounded-lg transition shadow-sm active:scale-95"
+                  title="Load User"
+                  className="px-3.5 py-2.5 bg-zinc-100 text-zinc-900 rounded-lg hover:bg-white transition-all font-semibold flex items-center justify-center shadow-sm active:scale-95"
                 >
-                  Load
+                  <IconArrow />
                 </button>
               </form>
+            </div>
 
-              {/* Presets */}
-              <div className="mt-3 flex items-center gap-1.5 flex-wrap">
-                <span className="text-[11px] text-slate-500">Popular:</span>
-                {presets.map((preset) => (
+            {/* Graph Type */}
+            <div className="space-y-2.5">
+              <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400">
+                Visualization Type
+              </label>
+              <div className="grid grid-cols-2 lg:grid-cols-1 gap-2">
+                {graphTypes.map((g) => (
                   <button
-                    key={preset}
+                    key={g.id}
                     type="button"
-                    onClick={() => {
-                      setInputVal(preset);
-                      setUsername(preset);
-                    }}
-                    className={`text-xs px-2 py-0.5 rounded-md border transition ${
-                      username === preset
-                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
-                        : 'bg-slate-800/40 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+                    onClick={() => setGraphType(g.id)}
+                    title={`${g.label} — ${g.desc}`}
+                    className={`text-[13px] px-3 py-2.5 rounded-lg text-left transition-all flex items-center justify-between gap-2 border ${
+                      graphType === g.id
+                        ? 'bg-zinc-800 border-zinc-700 text-zinc-100 font-semibold shadow-sm'
+                        : 'bg-zinc-900/40 border-zinc-800/70 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/70'
                     }`}
                   >
-                    @{preset}
+                    <span className="flex items-center gap-3 min-w-0">
+                      <span className={`shrink-0 w-9 h-9 rounded-md flex items-center justify-center border transition-colors ${
+                        graphType === g.id
+                          ? 'bg-zinc-950/70 border-zinc-700 text-emerald-300'
+                          : 'bg-zinc-950/50 border-zinc-800/80 text-zinc-400'
+                      }`}>
+                        <g.Icon />
+                      </span>
+                      <span className="flex flex-col leading-tight min-w-0">
+                        <span className="truncate">{g.label}</span>
+                        <span className={`text-[11px] font-normal truncate ${graphType === g.id ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                          {g.desc}
+                        </span>
+                      </span>
+                    </span>
+                    {graphType === g.id && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* Graph / Visualization Type Picker */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-3">
-              <label className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-emerald-400" />
-                Visualization Type
-              </label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setGraphType('calendar')}
-                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
-                    graphType === 'calendar'
-                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                >
-                  <LayoutGrid className="w-4 h-4 text-emerald-400" />
-                  <div>
-                    <div className="text-xs font-medium">Contribution Heatmap</div>
-                    <div className="text-[10px] text-slate-500">Classic GitHub squares</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGraphType('graph')}
-                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
-                    graphType === 'graph'
-                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                >
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
-                  <div>
-                    <div className="text-xs font-medium">Activity Curve</div>
-                    <div className="text-[10px] text-slate-500">Smooth wave & trend line</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGraphType('streak')}
-                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
-                    graphType === 'streak'
-                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                >
-                  <Flame className="w-4 h-4 text-orange-400" />
-                  <div>
-                    <div className="text-xs font-medium">Streak Stats Card</div>
-                    <div className="text-[10px] text-slate-500">Streaks & milestones</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGraphType('bar')}
-                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
-                    graphType === 'bar'
-                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                >
-                  <BarChart3 className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <div className="text-xs font-medium">Monthly Breakdown</div>
-                    <div className="text-[10px] text-slate-500">Vertical monthly bars</div>
-                  </div>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setGraphType('weekday')}
-                  className={`col-span-2 p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
-                    graphType === 'weekday'
-                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
-                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                  }`}
-                >
-                  <Clock className="w-4 h-4 text-purple-400" />
-                  <div>
-                    <div className="text-xs font-medium">Weekday Habit Chart</div>
-                    <div className="text-[10px] text-slate-500">Sunday through Saturday distribution</div>
-                  </div>
-                </button>
-              </div>
-
-              {/* Time Range Selector (applicable to calendar, graph, bar, weekday) */}
+              {/* Time Range */}
               {graphType !== 'streak' && (
-                <div className="pt-2 border-t border-slate-800/80">
-                  <div className="text-[11px] text-slate-400 font-medium mb-1.5">Time Range:</div>
-                  <div className="grid grid-cols-4 gap-1.5">
+                <div className="pt-1">
+                  <div className="flex gap-1 bg-zinc-900/60 border border-zinc-850 rounded-lg p-1">
                     {(['1y', '6m', '3m', '30d'] as TimeRange[]).map((r) => (
                       <button
                         key={r}
                         type="button"
                         onClick={() => setRange(r)}
-                        className={`py-1 text-xs rounded-md border font-mono transition ${
+                        className={`flex-1 text-xs font-mono font-medium py-1.5 rounded-md transition-all ${
                           range === r
-                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40 font-semibold'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                            ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50'
+                            : 'text-zinc-500 hover:text-zinc-300'
                         }`}
                       >
-                        {r === '1y' ? '1 Year' : r === '6m' ? '6 Months' : r === '3m' ? '3 Months' : '30 Days'}
+                        {r}
                       </button>
                     ))}
                   </div>
@@ -371,506 +357,239 @@ jobs:
               )}
             </div>
 
-            {/* Theme Selector Card */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-4">
+            {/* Theme Selector */}
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Palette className="w-3.5 h-3.5 text-emerald-400" />
+                <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
                   Color Theme
                 </label>
-                <span className="text-xs text-slate-500">{Object.keys(THEMES).length + 1} themes</span>
+                <span className="text-[11px] font-medium text-zinc-400">
+                  {theme === 'custom' ? 'Custom' : Object.values(THEMES).find((t) => t.id === theme)?.name}
+                </span>
               </div>
-
-              <div className="grid grid-cols-2 gap-2">
+              <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80">
                 {Object.values(THEMES).map((t) => (
                   <button
                     key={t.id}
                     type="button"
+                    title={t.name}
                     onClick={() => setTheme(t.id)}
-                    className={`flex items-center justify-between p-2.5 rounded-lg border text-left transition ${
+                    className={`p-1 rounded-md transition-all ${
                       theme === t.id
-                        ? 'bg-slate-800/80 border-emerald-500/60 ring-1 ring-emerald-500/30'
-                        : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-800/40'
+                        ? 'ring-2 ring-zinc-300 ring-offset-2 ring-offset-zinc-950 scale-105'
+                        : 'hover:ring-1 hover:ring-zinc-600 hover:ring-offset-2 hover:ring-offset-zinc-950 opacity-80 hover:opacity-100'
                     }`}
                   >
-                    <span className="text-xs font-medium text-slate-200 truncate">{t.name}</span>
-                    <div className="flex gap-1 ml-2 flex-shrink-0">
-                      {t.levels.map((lvl, idx) => (
-                        <div
-                          key={idx}
-                          className="w-2.5 h-2.5 rounded-xs"
-                          style={{ backgroundColor: lvl }}
-                        />
+                    <span className="flex overflow-hidden rounded-[3px]">
+                      {t.levels.map((lvl, i) => (
+                        <span key={i} className="w-4 h-4" style={{ backgroundColor: lvl }} />
                       ))}
-                    </div>
+                    </span>
                   </button>
                 ))}
-
-                {/* Custom theme option */}
                 <button
                   type="button"
+                  title="Custom"
                   onClick={() => setTheme('custom')}
-                  className={`flex items-center justify-between p-2.5 rounded-lg border text-left transition ${
+                  className={`p-1 rounded-md transition-all ${
                     theme === 'custom'
-                      ? 'bg-slate-800/80 border-emerald-500/60 ring-1 ring-emerald-500/30'
-                      : 'bg-slate-950/60 border-slate-800/80 hover:border-slate-700 hover:bg-slate-800/40'
+                      ? 'ring-2 ring-zinc-300 ring-offset-2 ring-offset-zinc-950 scale-105'
+                      : 'hover:ring-1 hover:ring-zinc-600 hover:ring-offset-2 hover:ring-offset-zinc-950 opacity-80 hover:opacity-100'
                   }`}
                 >
-                  <span className="text-xs font-medium text-slate-200">Custom Ramp</span>
-                  <div className="flex gap-1 ml-2 flex-shrink-0">
-                    {customLevels.map((lvl, idx) => (
-                      <div
-                        key={idx}
-                        className="w-2.5 h-2.5 rounded-xs"
-                        style={{ backgroundColor: lvl }}
-                      />
+                  <span className="flex overflow-hidden rounded-[3px]">
+                    {customLevels.map((lvl, i) => (
+                      <span key={i} className="w-4 h-4" style={{ backgroundColor: lvl }} />
                     ))}
-                  </div>
+                  </span>
                 </button>
               </div>
 
-              {/* Custom Level Color Pickers */}
               {theme === 'custom' && (
-                <div className="pt-3 border-t border-slate-800/80 space-y-2">
-                  <div className="text-[11px] text-slate-400 font-medium">Customize 5 intensity steps:</div>
-                  <div className="grid grid-cols-5 gap-2">
-                    {customLevels.map((lvl, idx) => (
-                      <div key={idx} className="flex flex-col items-center gap-1">
-                        <input
-                          type="color"
-                          value={lvl}
-                          onChange={(e) => {
-                            const updated = [...customLevels] as [string, string, string, string, string];
-                            updated[idx] = e.target.value;
-                            setCustomLevels(updated);
-                          }}
-                          className="w-8 h-8 rounded border border-slate-700 cursor-pointer bg-transparent"
-                        />
-                        <span className="text-[10px] font-mono text-slate-500">L{idx}</span>
-                      </div>
-                    ))}
-                  </div>
+                <div className="flex gap-2 pt-1">
+                  {customLevels.map((lvl, idx) => (
+                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
+                      <input
+                        type="color"
+                        value={lvl}
+                        onChange={(e) => {
+                          const u = [...customLevels] as [string, string, string, string, string];
+                          u[idx] = e.target.value;
+                          setCustomLevels(u);
+                        }}
+                        className="w-full h-7 p-0 rounded cursor-pointer bg-transparent border border-zinc-700"
+                      />
+                      <span className="text-[10px] font-mono text-zinc-500">L{idx}</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
 
             {/* Customization Options */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-4">
-              <label className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                Custom Options
-              </label>
+            <div className="rounded-lg bg-zinc-900/40 border border-zinc-800/80 p-3.5">
+              <button
+                type="button"
+                onClick={() => setOptionsOpen(!optionsOpen)}
+                className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider text-zinc-400 hover:text-zinc-200 transition w-full"
+              >
+                <span className="flex items-center gap-2">
+                  <IconChevron open={optionsOpen} />
+                  <span>Custom Options</span>
+                </span>
+              </button>
 
-              {/* Custom Title */}
-              <div>
-                <label className="block text-xs text-slate-400 mb-1">Custom Title Text (optional)</label>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder={`${username}'s Activity`}
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              {/* Corner Radius Slider (calendar only) */}
-              {graphType === 'calendar' && (
-                <div className="space-y-1.5">
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Cell Corner Radius (0 = square, 5 = circle)</span>
-                    <span className="font-mono text-slate-300">{radius}px</span>
+              {optionsOpen && (
+                <div className="pt-3.5 space-y-3.5 border-t border-zinc-800/60 mt-3 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <div>
+                    <label className="block text-xs text-zinc-400 mb-1">Custom Title Text</label>
+                    <input
+                      type="text"
+                      value={customTitle}
+                      onChange={(e) => setCustomTitle(e.target.value)}
+                      placeholder="e.g. My Activity"
+                      spellCheck={false}
+                      className="w-full bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-500 placeholder:text-zinc-600 transition"
+                    />
                   </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="5"
-                    step="0.5"
-                    value={radius}
-                    onChange={(e) => setRadius(parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 cursor-pointer"
-                  />
+
+                  {graphType === 'calendar' && (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs text-zinc-400">
+                        <span>Corner Radius</span>
+                        <span className="font-mono text-zinc-300">{radius}px</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={radius}
+                        onChange={(e) => setRadius(parseFloat(e.target.value))}
+                        className="w-full h-1 accent-zinc-300 cursor-pointer"
+                      />
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 pt-1">
+                    {[
+                      ...(graphType === 'graph' ? [['Area Fill', areaFill, setAreaFill] as const, ['Data Points', showPoints, setShowPoints] as const] : []),
+                      ['Title Header', !hideTitle, (v: boolean) => setHideTitle(!v)] as const,
+                      ...(graphType !== 'streak' ? [['Total Count', !hideTotal, (v: boolean) => setHideTotal(!v)] as const] : []),
+                      ...(graphType === 'calendar' ? [['Streaks', !hideStreak, (v: boolean) => setHideStreak(!v)] as const, ['Legend', !hideLegend, (v: boolean) => setHideLegend(!v)] as const] : []),
+                      ['Outer Border', showBorder, setShowBorder] as const,
+                    ].map(([label, checked, set]) => (
+                      <label key={label} className="flex items-center gap-2 text-xs text-zinc-400 cursor-pointer select-none hover:text-zinc-200 transition">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={(e) => set(e.target.checked)}
+                          className="w-3.5 h-3.5 accent-zinc-300 cursor-pointer rounded border-zinc-700 bg-zinc-900"
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
-
-              {/* Graph-specific toggles */}
-              {graphType === 'graph' && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={areaFill}
-                      onChange={(e) => setAreaFill(e.target.checked)}
-                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                    />
-                    Area Gradient Fill
-                  </label>
-
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={showPoints}
-                      onChange={(e) => setShowPoints(e.target.checked)}
-                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                    />
-                    Data Points
-                  </label>
-                </div>
-              )}
-
-              {/* General Toggles */}
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!hideTitle}
-                    onChange={(e) => setHideTitle(!e.target.checked)}
-                    className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                  />
-                  Show Title
-                </label>
-
-                {graphType !== 'streak' && (
-                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={!hideTotal}
-                      onChange={(e) => setHideTotal(!e.target.checked)}
-                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                    />
-                    Show Total Count
-                  </label>
-                )}
-
-                {graphType === 'calendar' && (
-                  <>
-                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!hideStreak}
-                        onChange={(e) => setHideStreak(!e.target.checked)}
-                        className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                      />
-                      Show Streaks
-                    </label>
-
-                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={!hideLegend}
-                        onChange={(e) => setHideLegend(!e.target.checked)}
-                        className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                      />
-                      Show Legend
-                    </label>
-                  </>
-                )}
-
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={showBorder}
-                    onChange={(e) => setShowBorder(e.target.checked)}
-                    className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                  />
-                  Card Border
-                </label>
-              </div>
             </div>
+          </aside>
 
-          </div>
+          {/* ─── Preview Pane ─── */}
+          <section className="space-y-6 min-w-0">
 
-          {/* Preview & Output column (7 cols) */}
-          <div className="lg:col-span-7 space-y-6">
-
-            {/* Live SVG Preview Card */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <h2 className="text-sm font-semibold text-slate-200">
-                    Live Preview: <span className="capitalize text-emerald-400">{graphType}</span>
-                  </h2>
+            {/* Preview Card */}
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/30 overflow-hidden shadow-sm">
+              {/* Preview Header */}
+              <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800/50 bg-zinc-900/40">
+                <div className="flex items-center gap-2 text-sm font-semibold text-zinc-200">
+                  <span className="text-zinc-100">{username}</span>
+                  <span className="text-zinc-600 font-normal">/</span>
+                  <span className="text-zinc-400 capitalize font-normal">{graphType}</span>
                   {loading && (
-                    <span className="flex items-center gap-1 text-[11px] text-slate-400">
-                      <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" />
-                      Updating...
-                    </span>
+                    <span className="inline-block w-3.5 h-3.5 border-2 border-zinc-600 border-t-zinc-200 rounded-full animate-spin ml-1.5" />
                   )}
                 </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCacheBuster((v) => v + 1)}
-                    title="Force refresh data"
-                    className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-
-                  <a
-                    href={fullUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    title="Open SVG in new tab"
-                    className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                  </a>
-
-                  <a
-                    href={fullUrl}
-                    download={`${username}-${graphType}-graph.svg`}
-                    title="Download SVG file"
-                    className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                  </a>
-                </div>
+                <span className="font-mono text-xs uppercase px-2 py-0.5 rounded bg-zinc-800/70 text-zinc-400 border border-zinc-700/40">
+                  {range}
+                </span>
               </div>
 
-              {/* Rendered SVG Embed Container */}
-              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800/80 overflow-x-auto flex justify-center min-h-[220px] items-center">
+              {/* SVG Canvas Area */}
+              <div className="p-6 sm:p-10 flex justify-center items-center min-h-[380px] bg-zinc-950/40 overflow-x-auto">
                 {errorMsg ? (
-                  <div className="flex flex-col items-center justify-center p-6 text-center text-rose-400 gap-2">
-                    <AlertCircle className="w-6 h-6 text-rose-400" />
-                    <span className="text-sm font-medium">{errorMsg}</span>
-                    <span className="text-xs text-slate-500">Check spelling or profile availability</span>
+                  <div className="text-center space-y-1.5 py-6">
+                    <p className="text-sm text-red-400 font-medium">{errorMsg}</p>
+                    <p className="text-xs text-zinc-500">Please check spelling or profile visibility</p>
                   </div>
                 ) : (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={relativeUrl}
-                    alt={`${username}'s GitHub contribution graph`}
-                    className="max-w-full h-auto drop-shadow-md"
-                  />
+                  <div className="w-full flex justify-center items-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={relativeUrl}
+                      alt={`${username}'s GitView`}
+                      className="w-full max-w-[880px] h-auto object-contain transition-all drop-shadow-md"
+                    />
+                  </div>
                 )}
               </div>
 
-              {/* Quick stats badges */}
+              {/* Stats Bar */}
               {stats && (
-                <div className="grid grid-cols-4 gap-2 pt-2 border-t border-slate-800/80">
-                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-center">
-                    <div className="text-[11px] text-slate-400">Total Year</div>
-                    <div className="text-sm font-bold text-slate-100 font-mono">
-                      {stats.totalContributions.toLocaleString()}
+                <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-zinc-800/60 bg-zinc-900/20 divide-y sm:divide-y-0 sm:divide-x divide-zinc-800/50">
+                  {statItems.map(({ value, label }) => (
+                    <div key={label} className="py-4 px-3 text-center">
+                      <div className="font-mono text-lg sm:text-xl font-bold text-zinc-100 tabular-nums">
+                        {value}
+                      </div>
+                      <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mt-0.5">
+                        {label}
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-center">
-                    <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1">
-                      <Flame className="w-3 h-3 text-orange-400" /> Current
-                    </div>
-                    <div className="text-sm font-bold text-orange-400 font-mono">
-                      {stats.currentStreak} d
-                    </div>
-                  </div>
-                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-center">
-                    <div className="text-[11px] text-slate-400">Longest</div>
-                    <div className="text-sm font-bold text-emerald-400 font-mono">
-                      {stats.longestStreak} d
-                    </div>
-                  </div>
-                  <div className="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800/80 text-center">
-                    <div className="text-[11px] text-slate-400">Daily Avg</div>
-                    <div className="text-sm font-bold text-cyan-400 font-mono">
-                      {stats.dailyAverage}
-                    </div>
-                  </div>
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* Code Export Tabs */}
-            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
-                <div className="flex items-center gap-1.5">
-                  <Code2 className="w-4 h-4 text-emerald-400" />
-                  <span className="text-sm font-semibold text-slate-200">Embed Snippets</span>
+            {/* Embed Code Section */}
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/30 overflow-hidden shadow-sm">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-zinc-800/50 bg-zinc-900/40 flex-wrap gap-2">
+                <div className="flex gap-1 overflow-x-auto">
+                  {(['markdown', 'html', 'url', 'json', 'action'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      onClick={() => setActiveTab(tab)}
+                      className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
+                        activeTab === tab
+                          ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                          : 'text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/40'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
                 </div>
-
-                {/* Tab switchers */}
-                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('markdown')}
-                    className={`px-2.5 py-1 rounded-md transition ${
-                      activeTab === 'markdown' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Markdown
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('html')}
-                    className={`px-2.5 py-1 rounded-md transition ${
-                      activeTab === 'html' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    HTML
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('url')}
-                    className={`px-2.5 py-1 rounded-md transition ${
-                      activeTab === 'url' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Raw URL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('json')}
-                    className={`px-2.5 py-1 rounded-md transition ${
-                      activeTab === 'json' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    JSON API
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab('action')}
-                    className={`px-2.5 py-1 rounded-md transition ${
-                      activeTab === 'action' ? 'bg-slate-800 text-emerald-400 font-medium' : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    GitHub Action
-                  </button>
-                </div>
-              </div>
-
-              {/* Code snippet block */}
-              <div className="relative">
-                <pre className="p-3.5 bg-slate-950 rounded-lg border border-slate-800/80 font-mono text-xs text-slate-300 overflow-x-auto whitespace-pre-wrap break-all leading-relaxed">
-                  {embedCodes[activeTab]}
-                </pre>
                 <button
                   type="button"
                   onClick={() => handleCopy(embedCodes[activeTab])}
-                  className="absolute top-2.5 right-2.5 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs rounded-md border border-slate-700 flex items-center gap-1.5 transition active:scale-95"
+                  className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg font-medium transition-all ${
+                    copied
+                      ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                      : 'text-zinc-300 hover:text-zinc-100 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700/60'
+                  }`}
                 >
-                  {copied ? (
-                    <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5" />
-                      <span>Copy</span>
-                    </>
-                  )}
+                  {copied ? <IconCheck /> : <IconCopy />}
+                  <span>{copied ? 'Copied' : 'Copy'}</span>
                 </button>
               </div>
-
-              <p className="text-xs text-slate-400">
-                {activeTab === 'markdown' && 'Paste this directly into your GitHub profile README.md.'}
-                {activeTab === 'html' && 'Use this if you prefer HTML tags inside your markdown or website.'}
-                {activeTab === 'url' && 'Direct SVG endpoint URL for custom image tags.'}
-                {activeTab === 'json' && 'Returns raw JSON data with full day-by-day counts and streak calculations.'}
-                {activeTab === 'action' && 'Runs on a GitHub cron schedule and saves the SVG directly into your repo.'}
-              </p>
+              <pre className="p-4 font-mono text-xs leading-relaxed text-zinc-400 whitespace-pre-wrap break-all max-h-64 overflow-auto bg-zinc-950/60 selection:bg-zinc-800">
+                {embedCodes[activeTab]}
+              </pre>
             </div>
-
-          </div>
-
-        </div>
-
-        {/* Documentation / Query parameters section */}
-        <div className="mt-12 bg-slate-900/50 rounded-xl border border-slate-800 p-6 space-y-6">
-          <div className="flex items-center gap-2">
-            <Layers className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-semibold text-slate-200">API Query Parameters Reference</h2>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-800 text-slate-400 font-mono">
-                  <th className="py-2.5 px-3">Parameter</th>
-                  <th className="py-2.5 px-3">Type</th>
-                  <th className="py-2.5 px-3">Default</th>
-                  <th className="py-2.5 px-3">Description</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">username</td>
-                  <td className="py-2.5 px-3 text-slate-400">string</td>
-                  <td className="py-2.5 px-3 text-slate-500">required</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">GitHub username to render (alias: user).</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">type</td>
-                  <td className="py-2.5 px-3 text-slate-400">string</td>
-                  <td className="py-2.5 px-3 text-slate-400">calendar</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">
-                    <strong className="text-emerald-400">calendar</strong> (classic square grid), <strong className="text-emerald-400">graph</strong> (curved activity wave), <strong className="text-emerald-400">streak</strong> (streak stats card), <strong className="text-emerald-400">bar</strong> (monthly volume bars), <strong className="text-emerald-400">weekday</strong> (Mon-Sun habits).
-                  </td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">range</td>
-                  <td className="py-2.5 px-3 text-slate-400">string</td>
-                  <td className="py-2.5 px-3 text-slate-400">1y</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Time window: <strong className="text-slate-200">1y</strong> (1 year), <strong className="text-slate-200">6m</strong> (6 months), <strong className="text-slate-200">3m</strong> (3 months), <strong className="text-slate-200">30d</strong> (30 days).</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">theme</td>
-                  <td className="py-2.5 px-3 text-slate-400">string</td>
-                  <td className="py-2.5 px-3 text-slate-400">github-dark</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">github-dark, github, dracula, ocean, fire, cyberpunk, nord, monokai, halloween, slate, custom.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">custom_levels</td>
-                  <td className="py-2.5 px-3 text-slate-400">csv string</td>
-                  <td className="py-2.5 px-3 text-slate-500">none</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">5 comma-separated hex codes for levels 0 to 4 (e.g. 161b22,0e4429,006d32,26a641,39d353).</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">radius</td>
-                  <td className="py-2.5 px-3 text-slate-400">number</td>
-                  <td className="py-2.5 px-3 text-slate-400">2.5</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Corner radius of calendar cells (0 = square, 2.5 = rounded, 5 = circle).</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">area</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">true</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Controls gradient area fill under the activity wave curve.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">points</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">true</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Controls circular data points along the activity curve.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">hide_title</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">false</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Hides the title header bar.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">border</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">true</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Controls outer border on the SVG card.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">refresh</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">false</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Bypasses server cache to fetch fresh contribution counts immediately.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          </section>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500">
-        Dual engine: GitHub Public Scraper fallback + GraphQL API token support. Built with Next.js and SVG.
-      </footer>
     </div>
   );
 }

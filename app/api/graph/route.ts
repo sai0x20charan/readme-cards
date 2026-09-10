@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const isNotFound = error instanceof UserNotFoundError;
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch contribution graph';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch GitView';
     const status = isNotFound ? 404 : 500;
     const errorSvg = renderErrorSvg(errorMessage);
 

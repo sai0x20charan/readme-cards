@@ -132,7 +132,7 @@ export function renderContributionCalendar(
   // Header
   let headerSvg = '';
   if (!hideTitle) {
-    const titleText = options.title ? options.title : `${data.username}'s GitHub Contributions`;
+    const titleText = options.title ? options.title : `${data.username}'s GitView`;
     const periodContributions = days.reduce((sum, d) => sum + d.count, 0);
     const formattedTotal = periodContributions.toLocaleString();
 
@@ -209,7 +209,7 @@ export function renderContributionCalendar(
 
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s contribution graph">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s GitView">
   <defs>
     <style>
       .day-cell { transition: opacity 0.15s ease; }
@@ -250,7 +250,7 @@ function createSmoothBezierPath(points: { x: number; y: number }[]): string {
 }
 
 /**
- * 2. Activity Wave / Area Line Chart SVG Renderer
+ * 2. Daily Activity Curve SVG Renderer — smooth curve through true per-day values (no averaging)
  */
 export function renderActivityGraph(
   data: ContributionCalendarData,
@@ -264,18 +264,7 @@ export function renderActivityGraph(
   const showPoints = options.points ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
 
-  const { weeks } = filterDataByRange(data, options.range);
-
-  // Group by week or month to form data points
-  // Each week has a sum of contributions
-  const weekSums = weeks.map((w) => {
-    const sum = w.days.reduce((acc, d) => acc + (d ? d.count : 0), 0);
-    const firstValidDay = w.days.find((d) => d !== null);
-    return {
-      count: sum,
-      date: firstValidDay?.date || '',
-    };
-  });
+  const { days } = filterDataByRange(data, options.range);
 
   const totalWidth = 740;
   const totalHeight = 220;
@@ -287,14 +276,15 @@ export function renderActivityGraph(
   const chartWidth = totalWidth - paddingLeft - paddingRight;
   const chartHeight = totalHeight - paddingTop - paddingBottom;
 
-  const maxCount = Math.max(...weekSums.map((w) => w.count), 10);
+  const maxDaily = Math.max(...days.map((d) => d.count), 5);
   // Round max count up to clean ceiling
-  const yCeil = Math.ceil(maxCount / 5) * 5;
+  const yCeil = Math.ceil(maxDaily / 5) * 5;
 
-  const points = weekSums.map((item, index) => {
-    const x = paddingLeft + (index / Math.max(weekSums.length - 1, 1)) * chartWidth;
-    const y = paddingTop + chartHeight - (item.count / yCeil) * chartHeight;
-    return { x, y, count: item.count, date: item.date };
+  // One point per day — no weekly averaging
+  const points = days.map((day, index) => {
+    const x = paddingLeft + (index / Math.max(days.length - 1, 1)) * chartWidth;
+    const y = paddingTop + chartHeight - (day.count / yCeil) * chartHeight;
+    return { x, y, count: day.count, date: day.date };
   });
 
   const linePath = createSmoothBezierPath(points);
@@ -302,6 +292,9 @@ export function renderActivityGraph(
   const firstX = points[0]?.x ?? paddingLeft;
   const lastX = points[points.length - 1]?.x ?? (paddingLeft + chartWidth);
   const areaPath = `${linePath} L ${lastX} ${baselineY} L ${firstX} ${baselineY} Z`;
+
+  // Dot radius adapts to density so 1y (~365 points) stays readable
+  const dotR = days.length > 250 ? 2 : days.length > 120 ? 2.5 : 3;
 
   // Grid horizontal lines (4 intervals)
   const gridLines: string[] = [];
@@ -324,25 +317,19 @@ export function renderActivityGraph(
     const month = d.getUTCMonth();
     if (month !== lastMonth && (i === 0 || i >= 4)) {
       monthLabels.push(`
-        <text x="${p.x.toFixed(1)}" y="${baselineY + 16}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${MONTH_NAMES[month]}</text>
+        <text x="${p.x.toFixed(1)}" y="${paddingTop + chartHeight + 16}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${MONTH_NAMES[month]}</text>
       `);
       lastMonth = month;
     }
   }
 
-  // High point / Peak calculation
-  let peakPoint = points[0];
-  for (const p of points) {
-    if (p.count > (peakPoint?.count || 0)) peakPoint = p;
-  }
-
   // Header
   const titleText = options.title ? options.title : `${data.username}'s Activity Curve`;
-  const periodTotal = weekSums.reduce((s, w) => s + w.count, 0);
+  const periodTotal = days.reduce((s, d) => s + d.count, 0);
 
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s activity graph">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s daily activity curve">
   <defs>
     <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.38" />
@@ -374,21 +361,15 @@ export function renderActivityGraph(
   <!-- Area Fill -->
   ${areaFill ? `<path d="${areaPath}" fill="url(#areaGradient)" />` : ''}
 
-  <!-- Smooth Activity Wave -->
+  <!-- Daily curve (true per-day values) -->
   <path d="${linePath}" fill="none" stroke="url(#lineGlow)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- Data Points -->
+  <!-- Daily points: one per day -->
   ${showPoints ? points.map((p) => `
-    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${theme.background}" stroke="${accentColor}" stroke-width="1.5">
-      <title>${p.count} contributions on week of ${p.date}</title>
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${theme.background}" stroke="${accentColor}" stroke-width="1.5">
+      <title>${p.count} contribution${p.count === 1 ? '' : 's'} on ${p.date}</title>
     </circle>
   `).join('') : ''}
-
-  <!-- Peak point highlight -->
-  ${peakPoint && peakPoint.count > 0 ? `
-    <circle cx="${peakPoint.x.toFixed(1)}" cy="${peakPoint.y.toFixed(1)}" r="4.5" fill="${accentColor}" />
-    <circle cx="${peakPoint.x.toFixed(1)}" cy="${peakPoint.y.toFixed(1)}" r="7.5" fill="${accentColor}" opacity="0.3" />
-  ` : ''}
 
   <!-- X-Axis Month Labels -->
   <g class="x-labels">${monthLabels.join('')}</g>
@@ -413,37 +394,60 @@ export function renderStreakCard(
   const streak = data.streak || { current: 0, longest: 0, total: 0, dailyAverage: 0 };
   const total = data.totalContributions || streak.total;
 
+  const fontFamily = `-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif`;
+  // Lucide "flame" outline — renders as a clean flame silhouette when filled.
+  const flamePath =
+    'M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z';
+  // Lucide "trophy" (stroke).
+  const trophyPaths = `
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />`;
+  // Mini contribution-grid glyph for the "total" column.
+  const gridCells = [0.3, 0.65, 1, 0.55, 1, 0.45, 0.9, 0.4, 0.75]
+    .map((opacity, i) => {
+      const x = (i % 3) * 6.5;
+      const y = Math.floor(i / 3) * 6.5;
+      return `<rect x="${x}" y="${y}" width="5" height="5" rx="1.2" fill="${theme.textSecondary}" opacity="${opacity}" />`;
+    })
+    .join('');
+
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${escapeXml(data.username)}'s contribution streaks">
   <defs>
     <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#ff7b00" />
+      <stop offset="0%" stop-color="#ffb800" />
+      <stop offset="55%" stop-color="#ff6b00" />
       <stop offset="100%" stop-color="#ff0055" />
     </linearGradient>
-    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="110%">
-      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
-    </filter>
   </defs>
 
   <rect width="100%" height="100%" rx="10" fill="${theme.background}" ${borderAttr} />
 
   <!-- Card Header -->
   <g class="header">
-    <circle cx="36" cy="32" r="14" fill="${accentColor}" opacity="0.15" />
-    <path d="M36 24c.4 1.8-1 3.5-1 4.5s1 2.5 1 4c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-3.3 3-5.2 4-6.5-.5 2 1 3 1.5 2.5s1.2-1.5 1.5-3 1-1.5 1-1z" fill="${accentColor}" />
-    <text x="58" y="36" font-size="14" font-weight="700" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <rect x="22" y="18" width="28" height="28" rx="8" fill="url(#fireGrad)" />
+    <g transform="translate(28, 24) scale(0.6667)">
+      <path d="${flamePath}" fill="#ffffff" opacity="0.95" />
+    </g>
+    <text x="58" y="36" font-size="14" font-weight="700" fill="${theme.textPrimary}" font-family="${fontFamily}">
       ${escapeXml(options.title || `${data.username}'s Contribution Stats`)}
     </text>
   </g>
 
-  <!-- 3 Stats Columns -->
+  <!-- 3 Stats Columns (shared geometry: badge cy=18, label y=46, value y=74, sub y=93) -->
   <!-- Column 1: Total Contributions -->
   <g transform="translate(20, 62)">
     <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.25" />
-    <text x="77" y="32" text-anchor="middle" font-size="11" font-weight="600" fill="${theme.textMuted}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">TOTAL CONTRIBUTIONS</text>
-    <text x="77" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <circle cx="77" cy="18" r="12" fill="${theme.textSecondary}" opacity="0.15" />
+    <g transform="translate(68, 9)">${gridCells}</g>
+    <text x="77" y="46" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="${theme.textMuted}" font-family="${fontFamily}">TOTAL CONTRIBUTIONS</text>
+    <text x="77" y="74" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="${fontFamily}">
       ${total.toLocaleString()}
     </text>
-    <text x="77" y="90" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="77" y="93" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="${fontFamily}">
       ${streak.dailyAverage} / day avg
     </text>
   </g>
@@ -451,13 +455,15 @@ export function renderStreakCard(
   <!-- Column 2: Current Streak (Highlighted) -->
   <g transform="translate(193, 62)">
     <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.45" stroke="${accentColor}" stroke-width="1.2" />
-    <circle cx="77" cy="18" r="10" fill="${accentColor}" opacity="0.2" />
-    <path d="M77 12c.3 1.2-.7 2.4-.7 3.1s.7 1.7.7 2.7c0 1.5-1.2 2.7-2.7 2.7s-2.7-1.2-2.7-2.7c0-2.2 2-3.5 2.7-4.4-.3 1.3.7 2 1 1.7s.8-1 1-2 .7-1 .7-.7z" fill="${accentColor}" />
-    <text x="77" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="${accentColor}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">CURRENT STREAK</text>
-    <text x="77" y="74" text-anchor="middle" font-size="26" font-weight="800" fill="${accentColor}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <circle cx="77" cy="18" r="12" fill="#ff6b00" opacity="0.18" />
+    <g transform="translate(67, 8) scale(0.8333)">
+      <path d="${flamePath}" fill="url(#fireGrad)" />
+    </g>
+    <text x="77" y="46" text-anchor="middle" font-size="11" font-weight="700" letter-spacing="0.4" fill="${accentColor}" font-family="${fontFamily}">CURRENT STREAK</text>
+    <text x="77" y="74" text-anchor="middle" font-size="26" font-weight="800" fill="${accentColor}" font-family="${fontFamily}">
       ${streak.current} <tspan font-size="14" font-weight="600">days</tspan>
     </text>
-    <text x="77" y="94" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="77" y="93" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="${fontFamily}">
       ${streak.current > 0 ? 'Active now' : 'Streak resting'}
     </text>
   </g>
@@ -465,11 +471,14 @@ export function renderStreakCard(
   <!-- Column 3: Longest Streak -->
   <g transform="translate(366, 62)">
     <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.25" />
-    <text x="77" y="32" text-anchor="middle" font-size="11" font-weight="600" fill="${theme.textMuted}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">LONGEST STREAK</text>
-    <text x="77" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <circle cx="77" cy="18" r="12" fill="#f59e0b" opacity="0.15" />
+    <g transform="translate(68, 9) scale(0.75)" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${trophyPaths}
+    </g>
+    <text x="77" y="46" text-anchor="middle" font-size="11" font-weight="600" letter-spacing="0.4" fill="${theme.textMuted}" font-family="${fontFamily}">LONGEST STREAK</text>
+    <text x="77" y="74" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="${fontFamily}">
       ${streak.longest} <tspan font-size="14" font-weight="600">days</tspan>
     </text>
-    <text x="77" y="90" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+    <text x="77" y="93" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="${fontFamily}">
       Personal best
     </text>
   </g>
@@ -668,7 +677,7 @@ export function renderErrorSvg(message: string, width = 600, height = 120): stri
   <circle cx="42" cy="60" r="18" fill="#f85149" opacity="0.15" />
   <path d="M42 50v14M42 68v2" stroke="#f85149" stroke-width="2.5" stroke-linecap="round" />
   <text x="76" y="55" font-size="14" font-weight="600" fill="#f85149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-    Contribution Graph Error
+    GitView Error
   </text>
   <text x="76" y="75" font-size="12" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
     ${escapeXml(message)}
