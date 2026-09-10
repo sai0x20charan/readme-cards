@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getContributionData, UserNotFoundError } from '@/lib/fetcher';
 import { renderContributionSvg, renderErrorSvg } from '@/lib/svg';
-import { RenderOptions } from '@/lib/types';
+import { GraphType, RenderOptions, TimeRange } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,18 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Parse rendering options
+  // Visualization type
+  let typeParam = (searchParams.get('type') || 'calendar').toLowerCase();
+  if (typeParam === 'activity') typeParam = 'graph';
+  const type = (['calendar', 'graph', 'streak', 'bar', 'weekday'].includes(typeParam)
+    ? typeParam
+    : 'calendar') as GraphType;
+
+  // Time range
+  const rangeParam = searchParams.get('range') || '1y';
+  const range = (['1y', '6m', '3m', '30d'].includes(rangeParam) ? rangeParam : '1y') as TimeRange;
+
+  // Visual options
   const theme = searchParams.get('theme') || 'github-dark';
   const customLevelsParam = searchParams.get('custom_levels');
   const customLevels = customLevelsParam ? customLevelsParam.split(',').map((c) => (c.startsWith('#') ? c : `#${c}`)) : undefined;
@@ -35,9 +46,15 @@ export async function GET(request: NextRequest) {
   const radiusParam = searchParams.get('radius');
   const radius = radiusParam !== null ? parseFloat(radiusParam) : 2.5;
 
+  const lineColor = searchParams.get('line_color') || undefined;
+  const areaFill = searchParams.get('area') !== 'false';
+  const points = searchParams.get('points') !== 'false';
+
   const forceRefresh = searchParams.get('refresh') === 'true' || searchParams.get('refresh') === '1';
 
   const renderOptions: RenderOptions = {
+    type,
+    range,
     theme,
     customLevels,
     hideTitle,
@@ -47,6 +64,9 @@ export async function GET(request: NextRequest) {
     radius: isNaN(radius) ? 2.5 : radius,
     showBorder,
     title,
+    lineColor,
+    areaFill,
+    points,
   };
 
   try {

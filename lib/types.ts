@@ -14,6 +14,10 @@ export interface ContributionStreak {
   longest: number;
   total: number;
   dailyAverage: number;
+  currentStartDate?: string;
+  currentEndDate?: string;
+  longestStartDate?: string;
+  longestEndDate?: string;
 }
 
 export interface ContributionCalendarData {
@@ -33,11 +37,17 @@ export interface ThemeConfig {
   textSecondary: string;
   textMuted: string;
   levels: [string, string, string, string, string]; // [Level 0, Level 1, Level 2, Level 3, Level 4]
+  accent?: string;
 }
 
+export type GraphType = 'calendar' | 'graph' | 'streak' | 'bar' | 'weekday';
+export type TimeRange = '1y' | '6m' | '3m' | '30d';
+
 export interface RenderOptions {
+  type?: GraphType;
   theme?: string;
   customLevels?: string[];
+  range?: TimeRange;
   hideTitle?: boolean;
   hideLegend?: boolean;
   hideTotal?: boolean;
@@ -45,4 +55,7 @@ export interface RenderOptions {
   radius?: number;
   showBorder?: boolean;
   title?: string;
+  lineColor?: string;
+  areaFill?: boolean;
+  points?: boolean;
 }

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { THEMES } from '@/lib/themes';
+import { GraphType, TimeRange } from '@/lib/types';
 import {
   Copy,
   Check,
@@ -16,12 +17,18 @@ import {
   Layers,
   Terminal,
   Download,
-  AlertCircle
+  AlertCircle,
+  TrendingUp,
+  BarChart3,
+  Clock,
+  LayoutGrid
 } from 'lucide-react';
 
 export default function Home() {
   const [username, setUsername] = useState('torvalds');
   const [inputVal, setInputVal] = useState('torvalds');
+  const [graphType, setGraphType] = useState<GraphType>('calendar');
+  const [range, setRange] = useState<TimeRange>('1y');
   const [theme, setTheme] = useState('github-dark');
   const [radius, setRadius] = useState(2.5);
   const [hideTitle, setHideTitle] = useState(false);
@@ -29,6 +36,8 @@ export default function Home() {
   const [hideTotal, setHideTotal] = useState(false);
   const [hideStreak, setHideStreak] = useState(false);
   const [showBorder, setShowBorder] = useState(true);
+  const [areaFill, setAreaFill] = useState(true);
+  const [showPoints, setShowPoints] = useState(true);
   const [customTitle, setCustomTitle] = useState('');
   const [customLevels, setCustomLevels] = useState<[string, string, string, string, string]>([
     '#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'
@@ -53,20 +62,26 @@ export default function Home() {
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     params.set('username', username.trim());
+    if (graphType !== 'calendar') params.set('type', graphType);
+    if (range !== '1y' && graphType !== 'streak') params.set('range', range);
     if (theme !== 'github-dark') params.set('theme', theme);
     if (theme === 'custom') {
       params.set('custom_levels', customLevels.map(c => c.replace('#', '')).join(','));
     }
-    if (radius !== 2.5) params.set('radius', radius.toString());
+    if (graphType === 'calendar' && radius !== 2.5) params.set('radius', radius.toString());
+    if (graphType === 'graph') {
+      if (!areaFill) params.set('area', 'false');
+      if (!showPoints) params.set('points', 'false');
+    }
     if (hideTitle) params.set('hide_title', 'true');
-    if (hideLegend) params.set('hide_legend', 'true');
+    if (graphType === 'calendar' && hideLegend) params.set('hide_legend', 'true');
     if (hideTotal) params.set('hide_total', 'true');
-    if (hideStreak) params.set('hide_streak', 'true');
+    if (graphType === 'calendar' && hideStreak) params.set('hide_streak', 'true');
     if (!showBorder) params.set('border', 'false');
     if (customTitle.trim()) params.set('title', customTitle.trim());
     if (cacheBuster > 0) params.set('refresh', '1');
     return params.toString();
-  }, [username, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, customTitle, cacheBuster]);
+  }, [username, graphType, range, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, customTitle, cacheBuster]);
 
   // Construct endpoint URLs
   const [origin, setOrigin] = useState('');
@@ -132,8 +147,8 @@ export default function Home() {
   // Embed code snippets
   const cleanFullUrl = fullUrl.replace('&refresh=1', '');
   const embedCodes = {
-    markdown: `[![${username}'s GitHub Contribution Graph](${cleanFullUrl})](https://github.com/${username})`,
-    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s GitHub Contribution Graph" />\n</a>`,
+    markdown: `[![${username}'s Contribution Graph](${cleanFullUrl})](https://github.com/${username})`,
+    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s Contribution Graph" />\n</a>`,
     url: cleanFullUrl,
     json: `${origin || ''}/api/data?username=${encodeURIComponent(username)}`,
     action: `name: Update Contribution Graph SVG
@@ -175,7 +190,7 @@ jobs:
                   Reliable
                 </span>
               </div>
-              <p className="text-xs text-slate-400">Fast SVG embed generator for profile READMEs</p>
+              <p className="text-xs text-slate-400">Custom graphs, streaks, and heatmap embeds for profile READMEs</p>
             </div>
           </div>
 
@@ -242,6 +257,118 @@ jobs:
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Graph / Visualization Type Picker */}
+            <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-3">
+              <label className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <Layers className="w-3.5 h-3.5 text-emerald-400" />
+                Visualization Type
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGraphType('calendar')}
+                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
+                    graphType === 'calendar'
+                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                  <div>
+                    <div className="text-xs font-medium">Contribution Heatmap</div>
+                    <div className="text-[10px] text-slate-500">Classic GitHub squares</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGraphType('graph')}
+                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
+                    graphType === 'graph'
+                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                  <div>
+                    <div className="text-xs font-medium">Activity Curve</div>
+                    <div className="text-[10px] text-slate-500">Smooth wave & trend line</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGraphType('streak')}
+                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
+                    graphType === 'streak'
+                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <Flame className="w-4 h-4 text-orange-400" />
+                  <div>
+                    <div className="text-xs font-medium">Streak Stats Card</div>
+                    <div className="text-[10px] text-slate-500">Streaks & milestones</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGraphType('bar')}
+                  className={`p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
+                    graphType === 'bar'
+                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <BarChart3 className="w-4 h-4 text-cyan-400" />
+                  <div>
+                    <div className="text-xs font-medium">Monthly Breakdown</div>
+                    <div className="text-[10px] text-slate-500">Vertical monthly bars</div>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setGraphType('weekday')}
+                  className={`col-span-2 p-2.5 rounded-lg border text-left flex items-center gap-2.5 transition ${
+                    graphType === 'weekday'
+                      ? 'bg-slate-800/90 border-emerald-500/60 ring-1 ring-emerald-500/30 text-slate-100'
+                      : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  }`}
+                >
+                  <Clock className="w-4 h-4 text-purple-400" />
+                  <div>
+                    <div className="text-xs font-medium">Weekday Habit Chart</div>
+                    <div className="text-[10px] text-slate-500">Sunday through Saturday distribution</div>
+                  </div>
+                </button>
+              </div>
+
+              {/* Time Range Selector (applicable to calendar, graph, bar, weekday) */}
+              {graphType !== 'streak' && (
+                <div className="pt-2 border-t border-slate-800/80">
+                  <div className="text-[11px] text-slate-400 font-medium mb-1.5">Time Range:</div>
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {(['1y', '6m', '3m', '30d'] as TimeRange[]).map((r) => (
+                      <button
+                        key={r}
+                        type="button"
+                        onClick={() => setRange(r)}
+                        className={`py-1 text-xs rounded-md border font-mono transition ${
+                          range === r
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/40 font-semibold'
+                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                        }`}
+                      >
+                        {r === '1y' ? '1 Year' : r === '6m' ? '6 Months' : r === '3m' ? '3 Months' : '30 Days'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Theme Selector Card */}
@@ -331,7 +458,7 @@ jobs:
             <div className="bg-slate-900/70 rounded-xl border border-slate-800 p-5 shadow-sm space-y-4">
               <label className="text-xs font-medium uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                 <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-                Layout & Sizing
+                Custom Options
               </label>
 
               {/* Custom Title */}
@@ -341,29 +468,56 @@ jobs:
                   type="text"
                   value={customTitle}
                   onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder={`${username}'s GitHub Contributions`}
+                  placeholder={`${username}'s Activity`}
                   className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
-              {/* Corner Radius Slider */}
-              <div className="space-y-1.5">
-                <div className="flex justify-between text-xs text-slate-400">
-                  <span>Square Corner Radius</span>
-                  <span className="font-mono text-slate-300">{radius}px</span>
+              {/* Corner Radius Slider (calendar only) */}
+              {graphType === 'calendar' && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs text-slate-400">
+                    <span>Cell Corner Radius (0 = square, 5 = circle)</span>
+                    <span className="font-mono text-slate-300">{radius}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="5"
+                    step="0.5"
+                    value={radius}
+                    onChange={(e) => setRadius(parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 cursor-pointer"
+                  />
                 </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="5"
-                  step="0.5"
-                  value={radius}
-                  onChange={(e) => setRadius(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer"
-                />
-              </div>
+              )}
 
-              {/* Toggles */}
+              {/* Graph-specific toggles */}
+              {graphType === 'graph' && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={areaFill}
+                      onChange={(e) => setAreaFill(e.target.checked)}
+                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
+                    />
+                    Area Gradient Fill
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={showPoints}
+                      onChange={(e) => setShowPoints(e.target.checked)}
+                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
+                    />
+                    Data Points
+                  </label>
+                </div>
+              )}
+
+              {/* General Toggles */}
               <div className="grid grid-cols-2 gap-3 pt-2">
                 <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
                   <input
@@ -375,35 +529,41 @@ jobs:
                   Show Title
                 </label>
 
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!hideTotal}
-                    onChange={(e) => setHideTotal(!e.target.checked)}
-                    className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                  />
-                  Show Total Count
-                </label>
+                {graphType !== 'streak' && (
+                  <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={!hideTotal}
+                      onChange={(e) => setHideTotal(!e.target.checked)}
+                      className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
+                    />
+                    Show Total Count
+                  </label>
+                )}
 
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!hideStreak}
-                    onChange={(e) => setHideStreak(!e.target.checked)}
-                    className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                  />
-                  Show Streaks
-                </label>
+                {graphType === 'calendar' && (
+                  <>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={!hideStreak}
+                        onChange={(e) => setHideStreak(!e.target.checked)}
+                        className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
+                      />
+                      Show Streaks
+                    </label>
 
-                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={!hideLegend}
-                    onChange={(e) => setHideLegend(!e.target.checked)}
-                    className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
-                  />
-                  Show Legend
-                </label>
+                    <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={!hideLegend}
+                        onChange={(e) => setHideLegend(!e.target.checked)}
+                        className="rounded border-slate-700 text-emerald-500 focus:ring-0 cursor-pointer accent-emerald-500"
+                      />
+                      Show Legend
+                    </label>
+                  </>
+                )}
 
                 <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer select-none">
                   <input
@@ -427,7 +587,9 @@ jobs:
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <h2 className="text-sm font-semibold text-slate-200">Live Preview</h2>
+                  <h2 className="text-sm font-semibold text-slate-200">
+                    Live Preview: <span className="capitalize text-emerald-400">{graphType}</span>
+                  </h2>
                   {loading && (
                     <span className="flex items-center gap-1 text-[11px] text-slate-400">
                       <RefreshCw className="w-3 h-3 animate-spin text-emerald-400" />
@@ -458,7 +620,7 @@ jobs:
 
                   <a
                     href={fullUrl}
-                    download={`${username}-contribution-graph.svg`}
+                    download={`${username}-${graphType}-graph.svg`}
                     title="Download SVG file"
                     className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-md transition"
                   >
@@ -468,7 +630,7 @@ jobs:
               </div>
 
               {/* Rendered SVG Embed Container */}
-              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800/80 overflow-x-auto flex justify-center min-h-[190px] items-center">
+              <div className="p-3 bg-slate-950 rounded-lg border border-slate-800/80 overflow-x-auto flex justify-center min-h-[220px] items-center">
                 {errorMsg ? (
                   <div className="flex flex-col items-center justify-center p-6 text-center text-rose-400 gap-2">
                     <AlertCircle className="w-6 h-6 text-rose-400" />
@@ -638,6 +800,20 @@ jobs:
                   <td className="py-2.5 px-3 font-sans text-slate-300">GitHub username to render (alias: user).</td>
                 </tr>
                 <tr>
+                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">type</td>
+                  <td className="py-2.5 px-3 text-slate-400">string</td>
+                  <td className="py-2.5 px-3 text-slate-400">calendar</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">
+                    <strong className="text-emerald-400">calendar</strong> (classic square grid), <strong className="text-emerald-400">graph</strong> (curved activity wave), <strong className="text-emerald-400">streak</strong> (streak stats card), <strong className="text-emerald-400">bar</strong> (monthly volume bars), <strong className="text-emerald-400">weekday</strong> (Mon-Sun habits).
+                  </td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">range</td>
+                  <td className="py-2.5 px-3 text-slate-400">string</td>
+                  <td className="py-2.5 px-3 text-slate-400">1y</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">Time window: <strong className="text-slate-200">1y</strong> (1 year), <strong className="text-slate-200">6m</strong> (6 months), <strong className="text-slate-200">3m</strong> (3 months), <strong className="text-slate-200">30d</strong> (30 days).</td>
+                </tr>
+                <tr>
                   <td className="py-2.5 px-3 text-emerald-400 font-semibold">theme</td>
                   <td className="py-2.5 px-3 text-slate-400">string</td>
                   <td className="py-2.5 px-3 text-slate-400">github-dark</td>
@@ -653,25 +829,25 @@ jobs:
                   <td className="py-2.5 px-3 text-emerald-400 font-semibold">radius</td>
                   <td className="py-2.5 px-3 text-slate-400">number</td>
                   <td className="py-2.5 px-3 text-slate-400">2.5</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Corner radius of day cells in pixels (0 to 5).</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">Corner radius of calendar cells (0 = square, 2.5 = rounded, 5 = circle).</td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">area</td>
+                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
+                  <td className="py-2.5 px-3 text-slate-400">true</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">Controls gradient area fill under the activity wave curve.</td>
+                </tr>
+                <tr>
+                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">points</td>
+                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
+                  <td className="py-2.5 px-3 text-slate-400">true</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">Controls circular data points along the activity curve.</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-3 text-emerald-400 font-semibold">hide_title</td>
                   <td className="py-2.5 px-3 text-slate-400">boolean</td>
                   <td className="py-2.5 px-3 text-slate-400">false</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Hides the title bar at the top of the card.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">hide_streak</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">false</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Hides the streak count in the footer.</td>
-                </tr>
-                <tr>
-                  <td className="py-2.5 px-3 text-emerald-400 font-semibold">hide_legend</td>
-                  <td className="py-2.5 px-3 text-slate-400">boolean</td>
-                  <td className="py-2.5 px-3 text-slate-400">false</td>
-                  <td className="py-2.5 px-3 font-sans text-slate-300">Hides the Less/More legend swatches.</td>
+                  <td className="py-2.5 px-3 font-sans text-slate-300">Hides the title header bar.</td>
                 </tr>
                 <tr>
                   <td className="py-2.5 px-3 text-emerald-400 font-semibold">border</td>

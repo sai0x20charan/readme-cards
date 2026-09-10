@@ -1,4 +1,4 @@
-import { ContributionCalendarData, RenderOptions } from './types';
+import { ContributionCalendarData, ContributionDay, RenderOptions, TimeRange } from './types';
 import { getTheme } from './themes';
 
 function escapeXml(unsafe: string): string {
@@ -19,7 +19,36 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
 ];
 
-export function renderContributionSvg(
+const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Filters weeks and days according to requested range:
+ * 1y = ~53 weeks, 6m = 26 weeks, 3m = 13 weeks, 30d = 5 weeks
+ */
+function filterDataByRange(data: ContributionCalendarData, range?: TimeRange) {
+  let weeks = data.weeks;
+  if (range === '6m') {
+    weeks = weeks.slice(Math.max(0, weeks.length - 26));
+  } else if (range === '3m') {
+    weeks = weeks.slice(Math.max(0, weeks.length - 13));
+  } else if (range === '30d') {
+    weeks = weeks.slice(Math.max(0, weeks.length - 5));
+  }
+
+  const days: ContributionDay[] = [];
+  for (const w of weeks) {
+    for (const d of w.days) {
+      if (d) days.push(d);
+    }
+  }
+
+  return { weeks, days };
+}
+
+/**
+ * 1. Calendar Heatmap SVG Renderer
+ */
+export function renderContributionCalendar(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
@@ -31,33 +60,34 @@ export function renderContributionSvg(
   const showBorder = options.showBorder ?? true;
   const radius = typeof options.radius === 'number' ? Math.max(0, Math.min(options.radius, 5)) : 2.5;
 
+  const { weeks, days } = filterDataByRange(data, options.range);
+
   const cellDim = 10;
   const cellGap = 3;
-  const colStep = cellDim + cellGap; // 13px
+  const colStep = cellDim + cellGap;
 
-  const leftMargin = 34; // space for day labels: "Mon", "Wed", "Fri"
+  const leftMargin = 34;
   const rightMargin = 20;
   const topMargin = hideTitle ? 16 : 46;
   const monthLabelHeight = 16;
   const gridTop = topMargin + monthLabelHeight;
-  const gridHeight = 7 * colStep - cellGap; // 88px
+  const gridHeight = 7 * colStep - cellGap;
 
   const footerTop = gridTop + gridHeight + 16;
   const footerHeight = hideLegend && hideStreak ? 0 : 20;
   const bottomMargin = 16;
 
-  const totalCols = Math.max(data.weeks.length, 53);
+  const totalCols = weeks.length;
   const gridWidth = totalCols * colStep - cellGap;
   const totalWidth = leftMargin + gridWidth + rightMargin;
   const totalHeight = footerTop + footerHeight + bottomMargin;
 
-  // Compute month label positions
+  // Month labels
   const monthLabels: { label: string; x: number }[] = [];
   let lastMonth = -1;
 
-  for (let c = 0; c < data.weeks.length; c++) {
-    const week = data.weeks[c];
-    // Find first valid day in week
+  for (let c = 0; c < weeks.length; c++) {
+    const week = weeks[c];
     const firstDay = week.days.find((d) => d !== null);
     if (firstDay) {
       const d = new Date(firstDay.date + 'T00:00:00Z');
@@ -72,7 +102,6 @@ export function renderContributionSvg(
     }
   }
 
-  // Filter out overlapping month labels if they are closer than 32px
   const filteredMonthLabels: { label: string; x: number }[] = [];
   for (let i = 0; i < monthLabels.length; i++) {
     if (i === 0 || monthLabels[i].x - filteredMonthLabels[filteredMonthLabels.length - 1].x >= 32) {
@@ -80,19 +109,16 @@ export function renderContributionSvg(
     }
   }
 
-  // Build grid cells
+  // Cells
   const cells: string[] = [];
-  for (let col = 0; col < data.weeks.length; col++) {
-    const week = data.weeks[col];
+  for (let col = 0; col < weeks.length; col++) {
+    const week = weeks[col];
     const x = leftMargin + col * colStep;
 
     for (let row = 0; row < 7; row++) {
       const day = week.days[row];
       const y = gridTop + row * colStep;
-
-      if (!day) {
-        continue;
-      }
+      if (!day) continue;
 
       const color = theme.levels[day.level] || theme.levels[0];
       const title = `${day.count} contribution${day.count === 1 ? '' : 's'} on ${day.date}`;
@@ -103,11 +129,12 @@ export function renderContributionSvg(
     }
   }
 
-  // Header content
+  // Header
   let headerSvg = '';
   if (!hideTitle) {
     const titleText = options.title ? options.title : `${data.username}'s GitHub Contributions`;
-    const formattedTotal = data.totalContributions.toLocaleString();
+    const periodContributions = days.reduce((sum, d) => sum + d.count, 0);
+    const formattedTotal = periodContributions.toLocaleString();
 
     headerSvg = `
       <g class="header">
@@ -116,7 +143,7 @@ export function renderContributionSvg(
         </text>
         ${!hideTotal ? `
           <text x="${totalWidth - rightMargin}" y="28" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-            ${formattedTotal} contributions in the last year
+            ${formattedTotal} contributions
           </text>
         ` : ''}
       </g>
@@ -131,7 +158,7 @@ export function renderContributionSvg(
     )
     .join('');
 
-  // Day labels SVG (Mon = row 1, Wed = row 3, Fri = row 5)
+  // Day labels
   const dayLabels = [
     { label: 'Mon', y: gridTop + 1 * colStep + 8 },
     { label: 'Wed', y: gridTop + 3 * colStep + 8 },
@@ -144,7 +171,7 @@ export function renderContributionSvg(
     )
     .join('');
 
-  // Footer: streaks and legend
+  // Footer: streaks & legend
   let footerSvg = '';
   if (!hideLegend || !hideStreak) {
     let streakTextSvg = '';
@@ -185,14 +212,8 @@ export function renderContributionSvg(
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s contribution graph">
   <defs>
     <style>
-      .day-cell {
-        transition: opacity 0.15s ease, transform 0.15s ease;
-      }
-      .day-cell:hover {
-        opacity: 0.82;
-        stroke: ${theme.textPrimary};
-        stroke-width: 0.75;
-      }
+      .day-cell { transition: opacity 0.15s ease; }
+      .day-cell:hover { opacity: 0.8; stroke: ${theme.textPrimary}; stroke-width: 0.75; }
     </style>
   </defs>
   <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
@@ -202,6 +223,443 @@ export function renderContributionSvg(
   <g class="cells">${cells.join('')}</g>
   ${footerSvg}
 </svg>`.trim();
+}
+
+/**
+ * Generates smooth SVG cubic bezier path string from coordinates.
+ */
+function createSmoothBezierPath(points: { x: number; y: number }[]): string {
+  if (points.length === 0) return '';
+  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+  let d = `M ${points[0].x} ${points[0].y}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(i - 1, 0)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(i + 2, points.length - 1)];
+
+    const cp1x = p1.x + (p2.x - p0.x) / 6;
+    const cp1y = p1.y + (p2.y - p0.y) / 6;
+    const cp2x = p2.x - (p3.x - p1.x) / 6;
+    const cp2y = p2.y - (p3.y - p1.y) / 6;
+
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  }
+  return d;
+}
+
+/**
+ * 2. Activity Wave / Area Line Chart SVG Renderer
+ */
+export function renderActivityGraph(
+  data: ContributionCalendarData,
+  options: RenderOptions = {}
+): string {
+  const theme = getTheme(options.theme, options.customLevels);
+  const hideTitle = options.hideTitle ?? false;
+  const hideTotal = options.hideTotal ?? false;
+  const showBorder = options.showBorder ?? true;
+  const areaFill = options.areaFill ?? true;
+  const showPoints = options.points ?? true;
+  const accentColor = options.lineColor || theme.accent || theme.levels[4];
+
+  const { weeks } = filterDataByRange(data, options.range);
+
+  // Group by week or month to form data points
+  // Each week has a sum of contributions
+  const weekSums = weeks.map((w) => {
+    const sum = w.days.reduce((acc, d) => acc + (d ? d.count : 0), 0);
+    const firstValidDay = w.days.find((d) => d !== null);
+    return {
+      count: sum,
+      date: firstValidDay?.date || '',
+    };
+  });
+
+  const totalWidth = 740;
+  const totalHeight = 220;
+  const paddingLeft = 50;
+  const paddingRight = 30;
+  const paddingTop = hideTitle ? 30 : 60;
+  const paddingBottom = 40;
+
+  const chartWidth = totalWidth - paddingLeft - paddingRight;
+  const chartHeight = totalHeight - paddingTop - paddingBottom;
+
+  const maxCount = Math.max(...weekSums.map((w) => w.count), 10);
+  // Round max count up to clean ceiling
+  const yCeil = Math.ceil(maxCount / 5) * 5;
+
+  const points = weekSums.map((item, index) => {
+    const x = paddingLeft + (index / Math.max(weekSums.length - 1, 1)) * chartWidth;
+    const y = paddingTop + chartHeight - (item.count / yCeil) * chartHeight;
+    return { x, y, count: item.count, date: item.date };
+  });
+
+  const linePath = createSmoothBezierPath(points);
+  const baselineY = paddingTop + chartHeight;
+  const firstX = points[0]?.x ?? paddingLeft;
+  const lastX = points[points.length - 1]?.x ?? (paddingLeft + chartWidth);
+  const areaPath = `${linePath} L ${lastX} ${baselineY} L ${firstX} ${baselineY} Z`;
+
+  // Grid horizontal lines (4 intervals)
+  const gridLines: string[] = [];
+  for (let i = 0; i <= 4; i++) {
+    const val = Math.round((yCeil / 4) * i);
+    const y = paddingTop + chartHeight - (i / 4) * chartHeight;
+    gridLines.push(`
+      <line x1="${paddingLeft}" y1="${y}" x2="${totalWidth - paddingRight}" y2="${y}" stroke="${theme.cardBorder}" stroke-dasharray="3,3" opacity="0.4" />
+      <text x="${paddingLeft - 8}" y="${y + 3}" font-size="9" fill="${theme.textMuted}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${val}</text>
+    `);
+  }
+
+  // Month labels on X axis
+  const monthLabels: string[] = [];
+  let lastMonth = -1;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (!p.date) continue;
+    const d = new Date(p.date + 'T00:00:00Z');
+    const month = d.getUTCMonth();
+    if (month !== lastMonth && (i === 0 || i >= 4)) {
+      monthLabels.push(`
+        <text x="${p.x.toFixed(1)}" y="${baselineY + 16}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${MONTH_NAMES[month]}</text>
+      `);
+      lastMonth = month;
+    }
+  }
+
+  // High point / Peak calculation
+  let peakPoint = points[0];
+  for (const p of points) {
+    if (p.count > (peakPoint?.count || 0)) peakPoint = p;
+  }
+
+  // Header
+  const titleText = options.title ? options.title : `${data.username}'s Activity Curve`;
+  const periodTotal = weekSums.reduce((s, w) => s + w.count, 0);
+
+  const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s activity graph">
+  <defs>
+    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.38" />
+      <stop offset="100%" stop-color="${accentColor}" stop-opacity="0.0" />
+    </linearGradient>
+    <linearGradient id="lineGlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="${accentColor}" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="${accentColor}" stop-opacity="1" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  
+  ${!hideTitle ? `
+    <g class="header">
+      <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+        ${escapeXml(titleText)}
+      </text>
+      ${!hideTotal ? `
+        <text x="${totalWidth - paddingRight}" y="30" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${periodTotal.toLocaleString()} contributions
+        </text>
+      ` : ''}
+    </g>
+  ` : ''}
+
+  <!-- Grid lines -->
+  <g class="grid">${gridLines.join('')}</g>
+
+  <!-- Area Fill -->
+  ${areaFill ? `<path d="${areaPath}" fill="url(#areaGradient)" />` : ''}
+
+  <!-- Smooth Activity Wave -->
+  <path d="${linePath}" fill="none" stroke="url(#lineGlow)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+
+  <!-- Data Points -->
+  ${showPoints ? points.map((p) => `
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${theme.background}" stroke="${accentColor}" stroke-width="1.5">
+      <title>${p.count} contributions on week of ${p.date}</title>
+    </circle>
+  `).join('') : ''}
+
+  <!-- Peak point highlight -->
+  ${peakPoint && peakPoint.count > 0 ? `
+    <circle cx="${peakPoint.x.toFixed(1)}" cy="${peakPoint.y.toFixed(1)}" r="4.5" fill="${accentColor}" />
+    <circle cx="${peakPoint.x.toFixed(1)}" cy="${peakPoint.y.toFixed(1)}" r="7.5" fill="${accentColor}" opacity="0.3" />
+  ` : ''}
+
+  <!-- X-Axis Month Labels -->
+  <g class="x-labels">${monthLabels.join('')}</g>
+</svg>`.trim();
+}
+
+/**
+ * 3. Dedicated Streak Stats Card SVG Renderer
+ */
+export function renderStreakCard(
+  data: ContributionCalendarData,
+  options: RenderOptions = {}
+): string {
+  const theme = getTheme(options.theme, options.customLevels);
+  const showBorder = options.showBorder ?? true;
+  const accentColor = options.lineColor || theme.accent || theme.levels[4];
+
+  const width = 540;
+  const height = 195;
+  const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+
+  const streak = data.streak || { current: 0, longest: 0, total: 0, dailyAverage: 0 };
+  const total = data.totalContributions || streak.total;
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${escapeXml(data.username)}'s contribution streaks">
+  <defs>
+    <linearGradient id="fireGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ff7b00" />
+      <stop offset="100%" stop-color="#ff0055" />
+    </linearGradient>
+    <filter id="cardShadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect width="100%" height="100%" rx="10" fill="${theme.background}" ${borderAttr} />
+
+  <!-- Card Header -->
+  <g class="header">
+    <circle cx="36" cy="32" r="14" fill="${accentColor}" opacity="0.15" />
+    <path d="M36 24c.4 1.8-1 3.5-1 4.5s1 2.5 1 4c0 2.2-1.8 4-4 4s-4-1.8-4-4c0-3.3 3-5.2 4-6.5-.5 2 1 3 1.5 2.5s1.2-1.5 1.5-3 1-1.5 1-1z" fill="${accentColor}" />
+    <text x="58" y="36" font-size="14" font-weight="700" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${escapeXml(options.title || `${data.username}'s Contribution Stats`)}
+    </text>
+  </g>
+
+  <!-- 3 Stats Columns -->
+  <!-- Column 1: Total Contributions -->
+  <g transform="translate(20, 62)">
+    <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.25" />
+    <text x="77" y="32" text-anchor="middle" font-size="11" font-weight="600" fill="${theme.textMuted}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">TOTAL CONTRIBUTIONS</text>
+    <text x="77" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${total.toLocaleString()}
+    </text>
+    <text x="77" y="90" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${streak.dailyAverage} / day avg
+    </text>
+  </g>
+
+  <!-- Column 2: Current Streak (Highlighted) -->
+  <g transform="translate(193, 62)">
+    <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.45" stroke="${accentColor}" stroke-width="1.2" />
+    <circle cx="77" cy="18" r="10" fill="${accentColor}" opacity="0.2" />
+    <path d="M77 12c.3 1.2-.7 2.4-.7 3.1s.7 1.7.7 2.7c0 1.5-1.2 2.7-2.7 2.7s-2.7-1.2-2.7-2.7c0-2.2 2-3.5 2.7-4.4-.3 1.3.7 2 1 1.7s.8-1 1-2 .7-1 .7-.7z" fill="${accentColor}" />
+    <text x="77" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="${accentColor}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">CURRENT STREAK</text>
+    <text x="77" y="74" text-anchor="middle" font-size="26" font-weight="800" fill="${accentColor}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${streak.current} <tspan font-size="14" font-weight="600">days</tspan>
+    </text>
+    <text x="77" y="94" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${streak.current > 0 ? 'Active now' : 'Streak resting'}
+    </text>
+  </g>
+
+  <!-- Column 3: Longest Streak -->
+  <g transform="translate(366, 62)">
+    <rect width="154" height="110" rx="8" fill="${theme.cardBorder}" opacity="0.25" />
+    <text x="77" y="32" text-anchor="middle" font-size="11" font-weight="600" fill="${theme.textMuted}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">LONGEST STREAK</text>
+    <text x="77" y="68" text-anchor="middle" font-size="24" font-weight="800" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      ${streak.longest} <tspan font-size="14" font-weight="600">days</tspan>
+    </text>
+    <text x="77" y="90" text-anchor="middle" font-size="10" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      Personal best
+    </text>
+  </g>
+</svg>`.trim();
+}
+
+/**
+ * 4. Monthly Contribution Bar Chart SVG Renderer
+ */
+export function renderBarChart(
+  data: ContributionCalendarData,
+  options: RenderOptions = {}
+): string {
+  const theme = getTheme(options.theme, options.customLevels);
+  const hideTitle = options.hideTitle ?? false;
+  const hideTotal = options.hideTotal ?? false;
+  const showBorder = options.showBorder ?? true;
+  const accentColor = options.lineColor || theme.accent || theme.levels[4];
+
+  const { days } = filterDataByRange(data, options.range);
+
+  // Group days by Month-Year
+  const monthMap = new Map<string, { label: string; count: number }>();
+  for (const d of days) {
+    const key = d.date.substring(0, 7); // YYYY-MM
+    const dateObj = new Date(d.date + 'T00:00:00Z');
+    const monthLabel = MONTH_NAMES[dateObj.getUTCMonth()];
+    const existing = monthMap.get(key) || { label: monthLabel, count: 0 };
+    existing.count += d.count;
+    monthMap.set(key, existing);
+  }
+
+  const months = Array.from(monthMap.values());
+  const maxCount = Math.max(...months.map((m) => m.count), 20);
+
+  const totalWidth = 660;
+  const totalHeight = 220;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = hideTitle ? 25 : 55;
+  const paddingBottom = 35;
+
+  const chartWidth = totalWidth - paddingLeft - paddingRight;
+  const chartHeight = totalHeight - paddingTop - paddingBottom;
+  const barWidth = Math.min(32, Math.max(12, (chartWidth / Math.max(months.length, 1)) - 10));
+  const step = chartWidth / Math.max(months.length, 1);
+
+  const bars = months.map((m, i) => {
+    const barHeight = (m.count / maxCount) * chartHeight;
+    const x = paddingLeft + i * step + (step - barWidth) / 2;
+    const y = paddingTop + chartHeight - barHeight;
+
+    return `
+      <g class="bar-group">
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth.toFixed(1)}" height="${barHeight.toFixed(1)}" rx="3" fill="${accentColor}" opacity="0.88">
+          <title>${m.count} contributions in ${m.label}</title>
+        </rect>
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" font-size="9" font-weight="600" fill="${theme.textSecondary}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${m.count > 0 ? m.count : ''}
+        </text>
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${(paddingTop + chartHeight + 16).toFixed(1)}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${m.label}
+        </text>
+      </g>
+    `;
+  });
+
+  const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+  const titleText = options.title ? options.title : `${data.username}'s Monthly Breakdown`;
+  const periodTotal = months.reduce((s, m) => s + m.count, 0);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s monthly contributions">
+  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${!hideTitle ? `
+    <g class="header">
+      <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+        ${escapeXml(titleText)}
+      </text>
+      ${!hideTotal ? `
+        <text x="${totalWidth - paddingRight}" y="30" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${periodTotal.toLocaleString()} contributions
+        </text>
+      ` : ''}
+    </g>
+  ` : ''}
+  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${theme.cardBorder}" stroke-width="1" />
+  <g class="bars">${bars.join('')}</g>
+</svg>`.trim();
+}
+
+/**
+ * 5. Weekday Productivity Chart SVG Renderer (Sun - Sat)
+ */
+export function renderWeekdayChart(
+  data: ContributionCalendarData,
+  options: RenderOptions = {}
+): string {
+  const theme = getTheme(options.theme, options.customLevels);
+  const hideTitle = options.hideTitle ?? false;
+  const hideTotal = options.hideTotal ?? false;
+  const showBorder = options.showBorder ?? true;
+  const accentColor = options.lineColor || theme.accent || theme.levels[4];
+
+  const { days } = filterDataByRange(data, options.range);
+
+  // Group by weekday 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const counts = [0, 0, 0, 0, 0, 0, 0];
+  for (const d of days) {
+    counts[d.weekday] += d.count;
+  }
+
+  const maxCount = Math.max(...counts, 10);
+  const totalWidth = 560;
+  const totalHeight = 220;
+  const paddingLeft = 45;
+  const paddingRight = 25;
+  const paddingTop = hideTitle ? 25 : 55;
+  const paddingBottom = 35;
+
+  const chartWidth = totalWidth - paddingLeft - paddingRight;
+  const chartHeight = totalHeight - paddingTop - paddingBottom;
+  const barWidth = 36;
+  const step = chartWidth / 7;
+
+  const bars = counts.map((count, i) => {
+    const barHeight = (count / maxCount) * chartHeight;
+    const x = paddingLeft + i * step + (step - barWidth) / 2;
+    const y = paddingTop + chartHeight - barHeight;
+    const isPeak = count === maxCount && count > 0;
+
+    return `
+      <g class="weekday-bar">
+        <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barWidth}" height="${barHeight.toFixed(1)}" rx="3" fill="${isPeak ? accentColor : theme.levels[2]}" opacity="${isPeak ? '1' : '0.85'}">
+          <title>${count} contributions on ${WEEKDAY_NAMES[i]}days</title>
+        </rect>
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" font-size="9" font-weight="600" fill="${theme.textSecondary}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${count > 0 ? count : ''}
+        </text>
+        <text x="${(x + barWidth / 2).toFixed(1)}" y="${(paddingTop + chartHeight + 16).toFixed(1)}" font-size="10" font-weight="${isPeak ? '700' : '400'}" fill="${isPeak ? theme.textPrimary : theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${WEEKDAY_NAMES[i]}
+        </text>
+      </g>
+    `;
+  });
+
+  const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+  const titleText = options.title ? options.title : `${data.username}'s Day of Week Habit`;
+  const periodTotal = counts.reduce((a, b) => a + b, 0);
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s weekday habits">
+  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${!hideTitle ? `
+    <g class="header">
+      <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+        ${escapeXml(titleText)}
+      </text>
+      ${!hideTotal ? `
+        <text x="${totalWidth - paddingRight}" y="30" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          ${periodTotal.toLocaleString()} contributions
+        </text>
+      ` : ''}
+    </g>
+  ` : ''}
+  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${theme.cardBorder}" stroke-width="1" />
+  <g class="bars">${bars.join('')}</g>
+</svg>`.trim();
+}
+
+/**
+ * Universal dispatcher
+ */
+export function renderContributionSvg(
+  data: ContributionCalendarData,
+  options: RenderOptions = {}
+): string {
+  const type = options.type || 'calendar';
+
+  switch (type) {
+    case 'graph':
+      return renderActivityGraph(data, options);
+    case 'streak':
+      return renderStreakCard(data, options);
+    case 'bar':
+      return renderBarChart(data, options);
+    case 'weekday':
+      return renderWeekdayChart(data, options);
+    case 'calendar':
+    default:
+      return renderContributionCalendar(data, options);
+  }
 }
 
 export function renderErrorSvg(message: string, width = 600, height = 120): string {

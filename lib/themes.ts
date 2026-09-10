@@ -10,6 +10,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#8b949e',
     textMuted: '#6e7681',
     levels: ['#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'],
+    accent: '#39d353',
   },
   'github': {
     id: 'github',
@@ -20,6 +21,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#57606a',
     textMuted: '#8c959f',
     levels: ['#ebedf0', '#9be9a8', '#40c463', '#30a14e', '#216e39'],
+    accent: '#2da44e',
   },
   'dracula': {
     id: 'dracula',
@@ -30,6 +32,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#bd93f9',
     textMuted: '#6272a4',
     levels: ['#383a59', '#4d4f68', '#6272a4', '#bd93f9', '#ff79c6'],
+    accent: '#ff79c6',
   },
   'ocean': {
     id: 'ocean',
@@ -40,6 +43,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#64ffda',
     textMuted: '#8892b0',
     levels: ['#172a45', '#0d3b66', '#0077b6', '#00b4d8', '#64ffda'],
+    accent: '#64ffda',
   },
   'fire': {
     id: 'fire',
@@ -50,6 +54,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#f6ad55',
     textMuted: '#9c4221',
     levels: ['#2d1515', '#6b1d1d', '#b83214', '#e06a14', '#fbbf24'],
+    accent: '#fbbf24',
   },
   'cyberpunk': {
     id: 'cyberpunk',
@@ -60,6 +65,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#00f5ff',
     textMuted: '#8b5cf6',
     levels: ['#1e0c38', '#4c1d95', '#8b5cf6', '#d946ef', '#00f5ff'],
+    accent: '#00f5ff',
   },
   'nord': {
     id: 'nord',
@@ -70,6 +76,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#88c0d0',
     textMuted: '#4c566a',
     levels: ['#3b4252', '#4c566a', '#5e81ac', '#81a1c1', '#88c0d0'],
+    accent: '#88c0d0',
   },
   'monokai': {
     id: 'monokai',
@@ -80,6 +87,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#a6e22e',
     textMuted: '#75715e',
     levels: ['#3e3d32', '#49483e', '#fd971f', '#f92672', '#a6e22e'],
+    accent: '#a6e22e',
   },
   'halloween': {
     id: 'halloween',
@@ -90,6 +98,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#fa8900',
     textMuted: '#888888',
     levels: ['#242424', '#631c03', '#bd561d', '#fa8900', '#f6ee54'],
+    accent: '#fa8900',
   },
   'slate': {
     id: 'slate',
@@ -100,6 +109,7 @@ export const THEMES: Record<string, ThemeConfig> = {
     textSecondary: '#94a3b8',
     textMuted: '#475569',
     levels: ['#1e293b', '#334155', '#64748b', '#94a3b8', '#e2e8f0'],
+    accent: '#94a3b8',
   },
 };
 
@@ -114,6 +124,7 @@ export function getTheme(themeId?: string, customLevels?: string[]): ThemeConfig
       id: 'custom',
       name: 'Custom',
       levels: customLevels as [string, string, string, string, string],
+      accent: customLevels[4],
     };
   }
   
