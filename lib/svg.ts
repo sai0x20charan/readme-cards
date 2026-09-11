@@ -35,11 +35,14 @@ function filterDataByRange(data: ContributionCalendarData, range?: TimeRange) {
     weeks = weeks.slice(Math.max(0, weeks.length - 5));
   }
 
-  const days: ContributionDay[] = [];
+  let days: ContributionDay[] = [];
   for (const w of weeks) {
     for (const d of w.days) {
       if (d) days.push(d);
     }
+  }
+  if (range === '30d' && days.length > 30) {
+    days = days.slice(days.length - 30);
   }
 
   return { weeks, days };
@@ -124,7 +127,7 @@ export function renderContributionCalendar(
       const title = `${day.count} contribution${day.count === 1 ? '' : 's'} on ${day.date}`;
 
       cells.push(
-        `<rect class="day-cell" x="${x}" y="${y}" width="${cellDim}" height="${cellDim}" rx="${radius}" fill="${color}" data-count="${day.count}" data-date="${day.date}"><title>${escapeXml(title)}</title></rect>`
+        `<rect class=\"day-cell\" x=\"${x}\" y=\"${y}\" width=\"${cellDim}\" height=\"${cellDim}\" rx=\"${radius}\" fill=\"${color}\" data-count=\"${day.count}\" data-date=\"${day.date}\"><title>${escapeXml(title)}</title></rect>`
       );
     }
   }
@@ -227,26 +230,164 @@ export function renderContributionCalendar(
 
 /**
  * Generates smooth SVG cubic bezier path string from coordinates.
+ * Uses Fritsch-Carlson Monotone Cubic Spline interpolation (matching Chartist monotoneCubic):
+ * - Guarantees monotonicity: the curve never overshoots above peaks or dips below the baseline.
+ * - Smooth C1 continuity everywhere (no kinks or abrupt corner angles).
+ * - Passes through every single data point with 100% mathematical precision.
  */
 function createSmoothBezierPath(points: { x: number; y: number }[]): string {
-  if (points.length === 0) return '';
-  if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+  const n = points.length;
+  if (n === 0) return '';
+  if (n === 1) return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+  if (n === 2) {
+    return `M ${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)} L ${points[1].x.toFixed(1)} ${points[1].y.toFixed(1)}`;
+  }
 
-  let d = `M ${points[0].x} ${points[0].y}`;
-  for (let i = 0; i < points.length - 1; i++) {
-    const p0 = points[Math.max(i - 1, 0)];
-    const p1 = points[i];
-    const p2 = points[i + 1];
-    const p3 = points[Math.min(i + 2, points.length - 1)];
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const dxs: number[] = [];
+  const dys: number[] = [];
+  const ds: number[] = [];
 
-    const cp1x = p1.x + (p2.x - p0.x) / 6;
-    const cp1y = p1.y + (p2.y - p0.y) / 6;
-    const cp2x = p2.x - (p3.x - p1.x) / 6;
-    const cp2y = p2.y - (p3.y - p1.y) / 6;
+  for (let i = 0; i < n - 1; i++) {
+    const dx = xs[i + 1] - xs[i];
+    const dy = ys[i + 1] - ys[i];
+    dxs.push(dx);
+    dys.push(dy);
+    ds.push(dx === 0 ? 0 : dy / dx);
+  }
 
-    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
+  const ms = new Array<number>(n);
+  ms[0] = ds[0];
+  ms[n - 1] = ds[n - 2];
+
+  for (let i = 1; i < n - 1; i++) {
+    if (ds[i] === 0 || ds[i - 1] === 0 || (ds[i - 1] > 0) !== (ds[i] > 0)) {
+      ms[i] = 0;
+    } else {
+      ms[i] = (3 * (dxs[i - 1] + dxs[i])) / (
+        (2 * dxs[i] + dxs[i - 1]) / ds[i - 1] +
+        (dxs[i] + 2 * dxs[i - 1]) / ds[i]
+      );
+      if (!isFinite(ms[i])) {
+        ms[i] = 0;
+      }
+    }
+  }
+
+  let d = `M ${xs[0].toFixed(1)} ${ys[0].toFixed(1)}`;
+  for (let i = 0; i < n - 1; i++) {
+    const cp1x = xs[i] + dxs[i] / 3;
+    const cp1y = ys[i] + (ms[i] * dxs[i]) / 3;
+    const cp2x = xs[i + 1] - dxs[i] / 3;
+    const cp2y = ys[i + 1] - (ms[i + 1] * dxs[i]) / 3;
+
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)}, ${cp2x.toFixed(1)} ${cp2y.toFixed(1)}, ${xs[i + 1].toFixed(1)} ${ys[i + 1].toFixed(1)}`;
   }
   return d;
+}
+
+/**
+ * Exact Chartist.js getBounds algorithm used by node-chartist in github-readme-activity-graph.
+ * Dynamically scales the Y axis directly from the user's commit history.
+ */
+function calculateAxisBounds(
+  axisLength: number,
+  maxValue: number,
+  scaleMinSpace = 20
+): { min: number; max: number; step: number; values: number[] } {
+  function orderOfMagnitude(value: number): number {
+    return Math.floor(Math.log(Math.abs(value)) / Math.LN10);
+  }
+
+  function projectLength(axisLen: number, length: number, b: { range: number }): number {
+    return (length / Math.max(b.range, 1)) * axisLen;
+  }
+
+  function roundWithPrecision(value: number, digits = 8): number {
+    const p = Math.pow(10, digits);
+    return Math.round(value * p) / p;
+  }
+
+  function rho(num: number): number {
+    if (num <= 1) return 1;
+    function gcd(p: number, q: number): number {
+      return p % q === 0 ? q : gcd(q, p % q);
+    }
+    function f(x: number): number {
+      return (x * x + 1) % num;
+    }
+    let x1 = 2;
+    let x2 = 2;
+    let divisor: number;
+    if (num % 2 === 0) return 2;
+    do {
+      x1 = f(x1);
+      x2 = f(f(x2));
+      divisor = gcd(Math.abs(x1 - x2), num);
+    } while (divisor === 1);
+    return divisor;
+  }
+
+  const high = Math.max(maxValue, 1);
+  const low = 0;
+  const bounds = {
+    high,
+    low,
+    valueRange: high - low,
+    oom: 0,
+    step: 0,
+    min: 0,
+    max: 0,
+    range: 0,
+    values: [] as number[],
+  };
+
+  bounds.oom = orderOfMagnitude(bounds.valueRange);
+  bounds.step = Math.pow(10, bounds.oom);
+  bounds.min = Math.floor(bounds.low / bounds.step) * bounds.step;
+  bounds.max = Math.ceil(bounds.high / bounds.step) * bounds.step;
+  bounds.range = bounds.max - bounds.min;
+
+  const scaleUp = projectLength(axisLength, bounds.step, bounds) < scaleMinSpace;
+  const smallestFactor = rho(bounds.range);
+
+  if (projectLength(axisLength, 1, bounds) >= scaleMinSpace) {
+    bounds.step = 1;
+  } else if (smallestFactor < bounds.step && projectLength(axisLength, smallestFactor, bounds) >= scaleMinSpace) {
+    bounds.step = smallestFactor;
+  } else {
+    let count = 0;
+    while (count++ < 1000) {
+      if (scaleUp && projectLength(axisLength, bounds.step, bounds) <= scaleMinSpace) {
+        bounds.step *= 2;
+      } else if (!scaleUp && projectLength(axisLength, bounds.step / 2, bounds) >= scaleMinSpace) {
+        bounds.step /= 2;
+        if (bounds.step % 1 !== 0) {
+          bounds.step *= 2;
+          break;
+        }
+      } else {
+        break;
+      }
+    }
+  }
+
+  bounds.step = Math.max(1, Math.round(bounds.step));
+  let newMin = bounds.min;
+  let newMax = bounds.max;
+  while (newMin + bounds.step <= bounds.low) newMin += bounds.step;
+  while (newMax - bounds.step >= bounds.high) newMax -= bounds.step;
+  bounds.min = newMin;
+  bounds.max = newMax;
+  bounds.range = bounds.max - bounds.min;
+
+  const values: number[] = [];
+  for (let i = bounds.min; i <= bounds.max; i += bounds.step) {
+    values.push(roundWithPrecision(i));
+  }
+  bounds.values = values;
+  return bounds;
 }
 
 /**
@@ -262,64 +403,150 @@ export function renderActivityGraph(
   const showBorder = options.showBorder ?? true;
   const areaFill = options.areaFill ?? true;
   const showPoints = options.points ?? true;
+  const showGrid = options.showGrid ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
 
   const { days } = filterDataByRange(data, options.range);
 
   const totalWidth = 740;
-  const totalHeight = 220;
-  const paddingLeft = 50;
-  const paddingRight = 30;
-  const paddingTop = hideTitle ? 30 : 60;
-  const paddingBottom = 40;
+  const totalHeight = typeof options.height === 'number' && !isNaN(options.height)
+    ? Math.min(Math.max(options.height, 220), 600)
+    : 260;
+
+  const paddingLeft = 52;
+  const paddingRight = 28;
+  const paddingTop = hideTitle ? 28 : 55;
+  const paddingBottom = 38;
 
   const chartWidth = totalWidth - paddingLeft - paddingRight;
   const chartHeight = totalHeight - paddingTop - paddingBottom;
+  const baselineY = paddingTop + chartHeight;
 
-  const maxDaily = Math.max(...days.map((d) => d.count), 5);
-  // Round max count up to clean ceiling
-  const yCeil = Math.ceil(maxDaily / 5) * 5;
+  // Adapt dynamically to the user's actual commit history — matching github-readme-activity-graph
+  const maxDaily = Math.max(...days.map((d) => d.count), 0);
+  // Ensure a reasonable minimum ceiling of 4 so a profile with only 1 commit doesn't stretch across the entire vertical height
+  const bounds = calculateAxisBounds(chartHeight, Math.max(maxDaily, 4), 20);
+  const yCeil = bounds.max;
+
+  // Linear scaling: each commit corresponds to exact, uniform height across the chart
+  const getY = (count: number): number => {
+    if (count <= 0) return baselineY;
+    return baselineY - (count / yCeil) * chartHeight;
+  };
 
   // One point per day — no weekly averaging
   const points = days.map((day, index) => {
     const x = paddingLeft + (index / Math.max(days.length - 1, 1)) * chartWidth;
-    const y = paddingTop + chartHeight - (day.count / yCeil) * chartHeight;
+    const y = getY(day.count);
     return { x, y, count: day.count, date: day.date };
   });
 
   const linePath = createSmoothBezierPath(points);
-  const baselineY = paddingTop + chartHeight;
   const firstX = points[0]?.x ?? paddingLeft;
   const lastX = points[points.length - 1]?.x ?? (paddingLeft + chartWidth);
-  const areaPath = `${linePath} L ${lastX} ${baselineY} L ${firstX} ${baselineY} Z`;
+  const areaPath = `${linePath} L ${lastX.toFixed(1)} ${baselineY.toFixed(1)} L ${firstX.toFixed(1)} ${baselineY.toFixed(1)} Z`;
 
   // Dot radius adapts to density so 1y (~365 points) stays readable
   const dotR = days.length > 250 ? 2 : days.length > 120 ? 2.5 : 3;
 
-  // Grid horizontal lines (4 intervals)
+  // Grid lines and labels
   const gridLines: string[] = [];
-  for (let i = 0; i <= 4; i++) {
-    const val = Math.round((yCeil / 4) * i);
-    const y = paddingTop + chartHeight - (i / 4) * chartHeight;
+  const xAxisLabels: string[] = [];
+  const is30d = options.range === '30d' || days.length <= 40;
+
+  // Month starts calculation for time ranges > 40 days
+  const monthStarts: { index: number; x: number; label: string }[] = [];
+  if (!is30d) {
+    let lastMonth = -1;
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      if (!p.date) continue;
+      const d = new Date(p.date + 'T00:00:00Z');
+      const m = d.getUTCMonth();
+      if (m !== lastMonth) {
+        monthStarts.push({
+          index: i,
+          x: p.x,
+          label: MONTH_NAMES[m],
+        });
+        lastMonth = m;
+      }
+    }
+  }
+
+  // Filter month starts to prevent overlap if first month is near edge
+  const filteredMonths: { x: number; label: string }[] = [];
+  for (let i = 0; i < monthStarts.length; i++) {
+    if (i === 0 && monthStarts.length > 1 && (monthStarts[1].x - monthStarts[0].x < 28)) {
+      continue;
+    }
+    if (filteredMonths.length > 0 && monthStarts[i].x - filteredMonths[filteredMonths.length - 1].x < 24) {
+      continue;
+    }
+    filteredMonths.push(monthStarts[i]);
+  }
+
+  if (showGrid) {
+    // Horizontal grid lines across integer tick steps (matching .ct-grid stroke-opacity 0.3, stroke-dasharray 2px)
+    for (const val of bounds.values) {
+      const y = getY(val);
+      gridLines.push(`
+        <line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${totalWidth - paddingRight}" y2="${y.toFixed(1)}" stroke="${theme.cardBorder}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
+      `);
+    }
+
+    if (is30d) {
+      // Vertical grid lines for each day in 30d range
+      for (let i = 0; i < points.length; i++) {
+        const p = points[i];
+        gridLines.push(`
+          <line x1="${p.x.toFixed(1)}" y1="${paddingTop}" x2="${p.x.toFixed(1)}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.2" stroke-dasharray="2" stroke-width="1" />
+        `);
+      }
+    } else {
+      // Vertical grid lines accurately aligned with calendar month boundaries
+      for (const m of filteredMonths) {
+        gridLines.push(`
+          <line x1="${m.x.toFixed(1)}" y1="${paddingTop}" x2="${m.x.toFixed(1)}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
+        `);
+      }
+    }
+
+    // Solid left and bottom coordinate axes
     gridLines.push(`
-      <line x1="${paddingLeft}" y1="${y}" x2="${totalWidth - paddingRight}" y2="${y}" stroke="${theme.cardBorder}" stroke-dasharray="3,3" opacity="0.4" />
-      <text x="${paddingLeft - 8}" y="${y + 3}" font-size="9" fill="${theme.textMuted}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${val}</text>
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-width="1.2" stroke-opacity="0.8" />
+      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-width="1.2" stroke-opacity="0.8" />
+    `);
+  } else {
+    gridLines.push(`
+      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.6" stroke-width="1" />
     `);
   }
 
-  // Month labels on X axis
-  const monthLabels: string[] = [];
-  let lastMonth = -1;
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    if (!p.date) continue;
-    const d = new Date(p.date + 'T00:00:00Z');
-    const month = d.getUTCMonth();
-    if (month !== lastMonth && (i === 0 || i >= 4)) {
-      monthLabels.push(`
-        <text x="${p.x.toFixed(1)}" y="${paddingTop + chartHeight + 16}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${MONTH_NAMES[month]}</text>
+  // Y-axis tick labels
+  const yAxisLabels: string[] = [];
+  for (const val of bounds.values) {
+    const y = getY(val);
+    yAxisLabels.push(`
+      <text x="${paddingLeft - 8}" y="${(y + 3.5).toFixed(1)}" font-size="9" fill="${theme.textMuted}" text-anchor="end" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${val}</text>
+    `);
+  }
+
+  // X-axis labels
+  if (is30d) {
+    for (let i = 0; i < points.length; i++) {
+      const p = points[i];
+      if (!p.date) continue;
+      const dayNum = parseInt(p.date.split('-')[2], 10);
+      xAxisLabels.push(`
+        <text x="${p.x.toFixed(1)}" y="${baselineY + 14}" font-size="8" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${dayNum}</text>
       `);
-      lastMonth = month;
+    }
+  } else {
+    for (const m of filteredMonths) {
+      xAxisLabels.push(`
+        <text x="${m.x.toFixed(1)}" y="${baselineY + 14}" font-size="10" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${m.label}</text>
+      `);
     }
   }
 
@@ -344,19 +571,28 @@ export function renderActivityGraph(
   
   ${!hideTitle ? `
     <g class="header">
-      <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+      <text x="${paddingLeft}" y="28" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
         ${escapeXml(titleText)}
       </text>
       ${!hideTotal ? `
-        <text x="${totalWidth - paddingRight}" y="30" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+        <text x="${totalWidth - paddingRight}" y="28" text-anchor="end" font-size="12" font-weight="500" fill="${theme.textSecondary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
           ${periodTotal.toLocaleString()} contributions
         </text>
       ` : ''}
     </g>
   ` : ''}
 
+  <!-- Axis Titles -->
+  <g class="axis-titles">
+    <text x="16" y="${(paddingTop + chartHeight / 2).toFixed(1)}" transform="rotate(-90 16 ${(paddingTop + chartHeight / 2).toFixed(1)})" font-size="9" font-weight="500" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">Contributions</text>
+    <text x="${(paddingLeft + chartWidth / 2).toFixed(1)}" y="${baselineY + 27}" font-size="9" font-weight="500" fill="${theme.textMuted}" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">${is30d ? 'Days' : 'Timeline'}</text>
+  </g>
+
   <!-- Grid lines -->
   <g class="grid">${gridLines.join('')}</g>
+
+  <!-- Y-Axis Labels -->
+  <g class="y-labels">${yAxisLabels.join('')}</g>
 
   <!-- Area Fill -->
   ${areaFill ? `<path d="${areaPath}" fill="url(#areaGradient)" />` : ''}
@@ -364,15 +600,18 @@ export function renderActivityGraph(
   <!-- Daily curve (true per-day values) -->
   <path d="${linePath}" fill="none" stroke="url(#lineGlow)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
 
-  <!-- Daily points: one per day -->
+  <!-- Daily points: one per day (including zero) — solid fill so the dot
+       covers the line joint and stays visually centered on valleys/peaks.
+       Hollow (background-filled) dots hide the vertex inside the circle,
+       leaving two separated edge contacts that look off-center. -->
   ${showPoints ? points.map((p) => `
-    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${theme.background}" stroke="${accentColor}" stroke-width="1.5">
-      <title>${p.count} contribution${p.count === 1 ? '' : 's'} on ${p.date}</title>
+    <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${accentColor}" stroke="${theme.background}" stroke-width="1">
+      <title>${p.count} contribution${p.count === 1 ? "" : "s"} on ${p.date}</title>
     </circle>
-  `).join('') : ''}
+  `).join("") : ""}
 
-  <!-- X-Axis Month Labels -->
-  <g class="x-labels">${monthLabels.join('')}</g>
+  <!-- X-Axis Labels -->
+  <g class="x-labels">${xAxisLabels.join('')}</g>
 </svg>`.trim();
 }
 

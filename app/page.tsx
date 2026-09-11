@@ -94,9 +94,23 @@ const IconWeekdays = () => (
   </svg>
 );
 
+const USERNAME_STORAGE_KEY = 'gitview:username';
+const DEFAULT_USERNAME = 'torvalds';
+
+function getCachedUsername(): string {
+  if (typeof window === 'undefined') return DEFAULT_USERNAME;
+  try {
+    const cached = window.localStorage.getItem(USERNAME_STORAGE_KEY);
+    if (cached && cached.trim()) return cached.trim();
+  } catch {
+    /* localStorage unavailable — fall back to default */
+  }
+  return DEFAULT_USERNAME;
+}
+
 export default function Home() {
-  const [username, setUsername] = useState('torvalds');
-  const [inputVal, setInputVal] = useState('torvalds');
+  const [username, setUsername] = useState(getCachedUsername);
+  const [inputVal, setInputVal] = useState(getCachedUsername);
   const [graphType, setGraphType] = useState<GraphType>('calendar');
   const [range, setRange] = useState<TimeRange>('1y');
   const [theme, setTheme] = useState('github-dark');
@@ -108,6 +122,7 @@ export default function Home() {
   const [showBorder, setShowBorder] = useState(true);
   const [areaFill, setAreaFill] = useState(true);
   const [showPoints, setShowPoints] = useState(true);
+  const [showGrid, setShowGrid] = useState(true);
   const [customTitle, setCustomTitle] = useState('');
   const [customLevels, setCustomLevels] = useState<[string, string, string, string, string]>([
     '#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'
@@ -116,13 +131,8 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState<'markdown' | 'html' | 'url' | 'json' | 'action'>('markdown');
   const [copied, setCopied] = useState(false);
   const [cacheBuster, setCacheBuster] = useState(0);
+  const [mountTime] = useState(() => Date.now());
   const [loading, setLoading] = useState(false);
-  const [stats, setStats] = useState<{
-    totalContributions: number;
-    currentStreak: number;
-    longestStreak: number;
-    dailyAverage: number;
-  } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
 
@@ -139,6 +149,7 @@ export default function Home() {
     if (graphType === 'graph') {
       if (!areaFill) params.set('area', 'false');
       if (!showPoints) params.set('points', 'false');
+      if (!showGrid) params.set('grid', 'false');
     }
     if (hideTitle) params.set('hide_title', 'true');
     if (graphType === 'calendar' && hideLegend) params.set('hide_legend', 'true');
@@ -148,17 +159,15 @@ export default function Home() {
     if (customTitle.trim()) params.set('title', customTitle.trim());
     if (cacheBuster > 0) params.set('refresh', '1');
     return params.toString();
-  }, [username, graphType, range, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, customTitle, cacheBuster]);
+  }, [username, graphType, range, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, showGrid, customTitle, cacheBuster]);
 
-  const [origin, setOrigin] = useState('');
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setOrigin(window.location.origin);
-    }
-  }, []);
+  const [origin] = useState(() =>
+    typeof window !== 'undefined' ? window.location.origin : ''
+  );
 
   const relativeUrl = `/api/graph?${queryString}`;
   const fullUrl = origin ? `${origin}${relativeUrl}` : relativeUrl;
+  const previewImgSrc = `${relativeUrl}&_v=${cacheBuster > 0 ? cacheBuster : mountTime}`;
 
   useEffect(() => {
     let isCancelled = false;
@@ -172,19 +181,10 @@ export default function Home() {
           const errData = await res.json().catch(() => ({ error: 'User not found' }));
           throw new Error(errData.error || `HTTP ${res.status}`);
         }
-        const data = await res.json();
-        if (!isCancelled) {
-          setStats({
-            totalContributions: data.totalContributions,
-            currentStreak: data.streak?.current || 0,
-            longestStreak: data.streak?.longest || 0,
-            dailyAverage: data.streak?.dailyAverage || 0,
-          });
-        }
+        await res.json();
       } catch (err: unknown) {
         if (!isCancelled) {
           setErrorMsg(err instanceof Error ? err.message : 'Failed to fetch user data');
-          setStats(null);
         }
       } finally {
         if (!isCancelled) {
@@ -199,7 +199,13 @@ export default function Home() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (inputVal.trim()) {
-      setUsername(inputVal.trim());
+      const clean = inputVal.trim();
+      setUsername(clean);
+      try {
+        window.localStorage.setItem(USERNAME_STORAGE_KEY, clean);
+      } catch {
+        /* localStorage unavailable — username just won't persist */
+      }
     }
   };
 
@@ -225,13 +231,6 @@ export default function Home() {
     { id: 'bar', label: 'Monthly Bars', desc: 'Volume per month', Icon: IconBars },
     { id: 'weekday', label: 'Weekday Habits', desc: 'Mon–Sun pattern', Icon: IconWeekdays },
   ];
-
-  const statItems = stats ? [
-    { value: stats.totalContributions.toLocaleString(), label: 'contributions' },
-    { value: `${stats.currentStreak}`, label: 'day streak' },
-    { value: `${stats.longestStreak}`, label: 'best streak' },
-    { value: `${stats.dailyAverage}`, label: 'daily avg' },
-  ] : [];
 
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-zinc-100">
@@ -363,7 +362,7 @@ export default function Home() {
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
                   Color Theme
                 </label>
-                <span className="text-[11px] font-medium text-zinc-400">
+                <span className="text-[11px] font-medium text-zinc-500">
                   {theme === 'custom' ? 'Custom' : Object.values(THEMES).find((t) => t.id === theme)?.name}
                 </span>
               </div>
@@ -373,6 +372,7 @@ export default function Home() {
                     key={t.id}
                     type="button"
                     title={t.name}
+                    aria-pressed={theme === t.id}
                     onClick={() => setTheme(t.id)}
                     className={`p-1 rounded-md transition-all ${
                       theme === t.id
@@ -387,43 +387,74 @@ export default function Home() {
                     </span>
                   </button>
                 ))}
-                <button
-                  type="button"
-                  title="Custom"
-                  onClick={() => setTheme('custom')}
-                  className={`p-1 rounded-md transition-all ${
-                    theme === 'custom'
-                      ? 'ring-2 ring-zinc-300 ring-offset-2 ring-offset-zinc-950 scale-105'
-                      : 'hover:ring-1 hover:ring-zinc-600 hover:ring-offset-2 hover:ring-offset-zinc-950 opacity-80 hover:opacity-100'
-                  }`}
-                >
-                  <span className="flex overflow-hidden rounded-[3px]">
-                    {customLevels.map((lvl, i) => (
-                      <span key={i} className="w-4 h-4" style={{ backgroundColor: lvl }} />
-                    ))}
-                  </span>
-                </button>
               </div>
 
-              {theme === 'custom' && (
-                <div className="flex gap-2 pt-1">
-                  {customLevels.map((lvl, idx) => (
-                    <div key={idx} className="flex-1 flex flex-col items-center gap-1">
-                      <input
-                        type="color"
-                        value={lvl}
-                        onChange={(e) => {
-                          const u = [...customLevels] as [string, string, string, string, string];
-                          u[idx] = e.target.value;
-                          setCustomLevels(u);
-                        }}
-                        className="w-full h-7 p-0 rounded cursor-pointer bg-transparent border border-zinc-700"
-                      />
-                      <span className="text-[10px] font-mono text-zinc-500">L{idx}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              {/* Custom palette — visually distinct from presets so it's noticeable */}
+              <div className={`rounded-lg border transition-all overflow-hidden ${
+                theme === 'custom'
+                  ? 'border-emerald-500/50 bg-emerald-500/[0.06] shadow-[0_0_0_1px_rgba(16,185,129,0.25)]'
+                  : 'border-dashed border-zinc-700 bg-zinc-900/40 hover:border-zinc-500'
+              }`}>
+                <button
+                  type="button"
+                  title="Use custom palette"
+                  aria-pressed={theme === 'custom'}
+                  onClick={() => setTheme('custom')}
+                  className="w-full flex items-center gap-3 p-3 text-left"
+                >
+                  <span className="flex flex-1 h-7 overflow-hidden rounded-md border border-zinc-700/70">
+                    {customLevels.map((lvl, i) => (
+                      <span key={i} className="flex-1 h-full" style={{ backgroundColor: lvl }} />
+                    ))}
+                  </span>
+                  <span className="flex flex-col leading-tight shrink-0 min-w-[86px]">
+                    <span className={`text-xs font-semibold flex items-center gap-1.5 ${theme === 'custom' ? 'text-emerald-300' : 'text-zinc-200'}`}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
+                        <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
+                        <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
+                        <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
+                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.26-.29-.43-.68-.43-1.12A1.68 1.68 0 0 1 14.46 16h2.08A5.46 5.46 0 0 0 22 10.5C21.95 5.84 17.5 2 12 2Z" />
+                      </svg>
+                      Custom
+                    </span>
+                    <span className="text-[11px] text-zinc-500">
+                      {theme === 'custom' ? 'Editing palette…' : 'Make your own palette'}
+                    </span>
+                  </span>
+                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors ${theme === 'custom' ? 'bg-emerald-400' : 'bg-zinc-700'}`} />
+                </button>
+
+                {theme === 'custom' && (
+                  <div className="grid grid-cols-5 gap-2 px-3 pb-3">
+                    {customLevels.map((lvl, idx) => (
+                      <label
+                        key={idx}
+                        title={`Level ${idx} — ${lvl}. Click to pick a color.`}
+                        className="group relative flex flex-col items-center gap-1 rounded-md cursor-pointer"
+                      >
+                        <span
+                          className="w-full h-9 rounded-md border border-zinc-600/80 shadow-inner transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                          style={{ backgroundColor: lvl }}
+                        />
+                        <input
+                          type="color"
+                          value={lvl}
+                          onChange={(e) => {
+                            const u = [...customLevels] as [string, string, string, string, string];
+                            u[idx] = e.target.value;
+                            setCustomLevels(u);
+                          }}
+                          className="absolute inset-x-0 top-0 h-9 opacity-0 cursor-pointer"
+                          aria-label={`Pick color for level ${idx}`}
+                        />
+                        <span className="text-[10px] font-semibold text-zinc-400">L{idx}</span>
+                        <span className="text-[9px] font-mono uppercase text-zinc-500 -mt-1">{lvl}</span>
+                      </label>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Customization Options */}
@@ -473,7 +504,11 @@ export default function Home() {
 
                   <div className="grid grid-cols-2 gap-x-3 gap-y-2.5 pt-1">
                     {[
-                      ...(graphType === 'graph' ? [['Area Fill', areaFill, setAreaFill] as const, ['Data Points', showPoints, setShowPoints] as const] : []),
+                      ...(graphType === 'graph' ? [
+                        ['Area Fill', areaFill, setAreaFill] as const,
+                        ['Data Points', showPoints, setShowPoints] as const,
+                        ['Grid Lines', showGrid, setShowGrid] as const,
+                      ] : []),
                       ['Title Header', !hideTitle, (v: boolean) => setHideTitle(!v)] as const,
                       ...(graphType !== 'streak' ? [['Total Count', !hideTotal, (v: boolean) => setHideTotal(!v)] as const] : []),
                       ...(graphType === 'calendar' ? [['Streaks', !hideStreak, (v: boolean) => setHideStreak(!v)] as const, ['Legend', !hideLegend, (v: boolean) => setHideLegend(!v)] as const] : []),
@@ -526,29 +561,13 @@ export default function Home() {
                   <div className="w-full flex justify-center items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
-                      src={relativeUrl}
+                      src={previewImgSrc}
                       alt={`${username}'s GitView`}
                       className="w-full max-w-[880px] h-auto object-contain transition-all drop-shadow-md"
                     />
                   </div>
                 )}
               </div>
-
-              {/* Stats Bar */}
-              {stats && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-zinc-800/60 bg-zinc-900/20 divide-y sm:divide-y-0 sm:divide-x divide-zinc-800/50">
-                  {statItems.map(({ value, label }) => (
-                    <div key={label} className="py-4 px-3 text-center">
-                      <div className="font-mono text-lg sm:text-xl font-bold text-zinc-100 tabular-nums">
-                        {value}
-                      </div>
-                      <div className="text-[11px] font-medium uppercase tracking-wider text-zinc-500 mt-0.5">
-                        {label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
 
             {/* Embed Code Section */}

@@ -1,31 +1,26 @@
+export type ContributionLevel = 0 | 1 | 2 | 3 | 4;
+
 export interface ContributionDay {
   date: string;
   count: number;
-  level: 0 | 1 | 2 | 3 | 4;
-  weekday: number; // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  level: ContributionLevel;
+  weekday: number; // 0 = Sunday, 6 = Saturday
 }
 
 export interface ContributionWeek {
   days: (ContributionDay | null)[];
 }
 
-export interface ContributionStreak {
-  current: number;
-  longest: number;
-  total: number;
-  dailyAverage: number;
-  currentStartDate?: string;
-  currentEndDate?: string;
-  longestStartDate?: string;
-  longestEndDate?: string;
-}
-
 export interface ContributionCalendarData {
   username: string;
   totalContributions: number;
   weeks: ContributionWeek[];
-  streak: ContributionStreak;
-  year?: number | string;
+  streak?: {
+    current: number;
+    longest: number;
+    total: number;
+    dailyAverage: number;
+  };
 }
 
 export interface ThemeConfig {
@@ -53,9 +48,11 @@ export interface RenderOptions {
   hideTotal?: boolean;
   hideStreak?: boolean;
   radius?: number;
+  height?: number;
   showBorder?: boolean;
   title?: string;
   lineColor?: string;
   areaFill?: boolean;
   points?: boolean;
+  showGrid?: boolean;
 }
