@@ -2,6 +2,12 @@
 
 GitHub Cards turns a GitHub username into SVG cards you can embed in a README. Pick a chart type, pick a theme, tweak the colors, copy the markdown.
 
+![Contribution calendar](docs/previews/calendar.svg)
+![Activity curve](docs/previews/graph.svg)
+![Streak card](docs/previews/streak.svg)
+![Monthly bars](docs/previews/bar.svg)
+![Weekday habits](docs/previews/weekday.svg)
+
 ## Chart types
 
 All types render with `/api/graph?username=USERNAME&type=TYPE`.

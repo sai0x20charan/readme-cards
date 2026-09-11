@@ -1,0 +1,173 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 220" width="660" height="220" role="img" aria-label="torvalds's monthly contributions">
+  <rect x="0.5" y="0.5" width="659" height="219" rx="8" fill="#0d1117" stroke="#30363d" stroke-width="1" />
+  
+    <g class="header">
+      <text x="45" y="30" font-size="14" font-weight="600" fill="#c9d1d9" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+        torvalds&apos;s Monthly Breakdown
+      </text>
+      
+        <text x="635" y="30" text-anchor="end" font-size="12" font-weight="500" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          3,703 contributions
+        </text>
+      
+    </g>
+  
+  <line x1="45" y1="185" x2="635" y2="185" stroke="#30363d" stroke-width="1" />
+  <g class="bars">
+      <g class="bar-group">
+        <rect x="51.7" y="139.2" width="32.0" height="45.8" rx="3" fill="#39d353" opacity="0.88">
+          <title>210 contributions in Sep</title>
+        </rect>
+        <text x="67.7" y="133.2" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          210
+        </text>
+        <text x="67.7" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Sep
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="97.1" y="124.1" width="32.0" height="60.9" rx="3" fill="#39d353" opacity="0.88">
+          <title>279 contributions in Oct</title>
+        </rect>
+        <text x="113.1" y="118.1" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          279
+        </text>
+        <text x="113.1" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Oct
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="142.5" y="149.4" width="32.0" height="35.6" rx="3" fill="#39d353" opacity="0.88">
+          <title>163 contributions in Nov</title>
+        </rect>
+        <text x="158.5" y="143.4" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          163
+        </text>
+        <text x="158.5" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Nov
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="187.8" y="111.7" width="32.0" height="73.3" rx="3" fill="#39d353" opacity="0.88">
+          <title>336 contributions in Dec</title>
+        </rect>
+        <text x="203.8" y="105.7" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          336
+        </text>
+        <text x="203.8" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Dec
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="233.2" y="128.9" width="32.0" height="56.1" rx="3" fill="#39d353" opacity="0.88">
+          <title>257 contributions in Jan</title>
+        </rect>
+        <text x="249.2" y="122.9" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          257
+        </text>
+        <text x="249.2" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Jan
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="278.6" y="115.6" width="32.0" height="69.4" rx="3" fill="#39d353" opacity="0.88">
+          <title>318 contributions in Feb</title>
+        </rect>
+        <text x="294.6" y="109.6" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          318
+        </text>
+        <text x="294.6" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Feb
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="324.0" y="139.8" width="32.0" height="45.2" rx="3" fill="#39d353" opacity="0.88">
+          <title>207 contributions in Mar</title>
+        </rect>
+        <text x="340.0" y="133.8" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          207
+        </text>
+        <text x="340.0" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Mar
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="369.4" y="111.9" width="32.0" height="73.1" rx="3" fill="#39d353" opacity="0.88">
+          <title>335 contributions in Apr</title>
+        </rect>
+        <text x="385.4" y="105.9" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          335
+        </text>
+        <text x="385.4" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Apr
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="414.8" y="132.0" width="32.0" height="53.0" rx="3" fill="#39d353" opacity="0.88">
+          <title>243 contributions in May</title>
+        </rect>
+        <text x="430.8" y="126.0" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          243
+        </text>
+        <text x="430.8" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          May
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="460.2" y="104.5" width="32.0" height="80.5" rx="3" fill="#39d353" opacity="0.88">
+          <title>369 contributions in Jun</title>
+        </rect>
+        <text x="476.2" y="98.5" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          369
+        </text>
+        <text x="476.2" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Jun
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="505.5" y="121.3" width="32.0" height="63.7" rx="3" fill="#39d353" opacity="0.88">
+          <title>292 contributions in Jul</title>
+        </rect>
+        <text x="521.5" y="115.3" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          292
+        </text>
+        <text x="521.5" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Jul
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="550.9" y="55.0" width="32.0" height="130.0" rx="3" fill="#39d353" opacity="0.88">
+          <title>596 contributions in Aug</title>
+        </rect>
+        <text x="566.9" y="49.0" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          596
+        </text>
+        <text x="566.9" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Aug
+        </text>
+      </g>
+    
+      <g class="bar-group">
+        <rect x="596.3" y="163.6" width="32.0" height="21.4" rx="3" fill="#39d353" opacity="0.88">
+          <title>98 contributions in Sep</title>
+        </rect>
+        <text x="612.3" y="157.6" font-size="9" font-weight="600" fill="#8b949e" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          98
+        </text>
+        <text x="612.3" y="201.0" font-size="10" fill="#6e7681" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+          Sep
+        </text>
+      </g>
+    </g>
+</svg>
