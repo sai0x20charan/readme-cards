@@ -125,8 +125,39 @@ export default function Home() {
   const [showGrid, setShowGrid] = useState(true);
   const [customTitle, setCustomTitle] = useState('');
   const [customLevels, setCustomLevels] = useState<[string, string, string, string, string]>([
-    '#161b22', '#0e4429', '#006d32', '#26a641', '#39d353'
-  ]);
+    ...THEMES['github-dark'].levels,
+  ] as [string, string, string, string, string]);
+
+  // The editors always reflect the selected palette; tweaking any swatch
+  // automatically forks it into a customization (sent as custom_levels / colors).
+  const presetLevels = THEMES[theme]?.levels ?? THEMES['github-dark'].levels;
+  const presetBackground = THEMES[theme]?.background ?? THEMES['github-dark'].background;
+  const presetBorder = THEMES[theme]?.cardBorder ?? THEMES['github-dark'].cardBorder;
+  const [customBackground, setCustomBackground] = useState(presetBackground);
+  const [customBorder, setCustomBorder] = useState(presetBorder);
+  const isCustomized =
+    customLevels.some((c, i) => c.toLowerCase() !== presetLevels[i].toLowerCase()) ||
+    customBackground.toLowerCase() !== presetBackground.toLowerCase() ||
+    customBorder.toLowerCase() !== presetBorder.toLowerCase();
+
+  const handleSelectTheme = (id: string) => {
+    setTheme(id);
+    const t = THEMES[id];
+    if (t) {
+      setCustomLevels([...t.levels] as [string, string, string, string, string]);
+      setCustomBackground(t.background);
+      setCustomBorder(t.cardBorder);
+    }
+  };
+
+  const handleResetPalette = () => {
+    const t = THEMES[theme];
+    if (t) {
+      setCustomLevels([...t.levels] as [string, string, string, string, string]);
+      setCustomBackground(t.background);
+      setCustomBorder(t.cardBorder);
+    }
+  };
 
   const [activeTab, setActiveTab] = useState<'markdown' | 'html' | 'url' | 'json' | 'action'>('markdown');
   const [copied, setCopied] = useState(false);
@@ -142,8 +173,14 @@ export default function Home() {
     if (graphType !== 'calendar') params.set('type', graphType);
     if (range !== '1y' && graphType !== 'streak') params.set('range', range);
     if (theme !== 'github-dark') params.set('theme', theme);
-    if (theme === 'custom') {
+    if (isCustomized) {
       params.set('custom_levels', customLevels.map(c => c.replace('#', '')).join(','));
+      if (customBackground.toLowerCase() !== presetBackground.toLowerCase()) {
+        params.set('bg_color', customBackground.replace('#', ''));
+      }
+      if (customBorder.toLowerCase() !== presetBorder.toLowerCase()) {
+        params.set('border_color', customBorder.replace('#', ''));
+      }
     }
     if (graphType === 'calendar' && radius !== 2.5) params.set('radius', radius.toString());
     if (graphType === 'graph') {
@@ -159,7 +196,7 @@ export default function Home() {
     if (customTitle.trim()) params.set('title', customTitle.trim());
     if (cacheBuster > 0) params.set('refresh', '1');
     return params.toString();
-  }, [username, graphType, range, theme, customLevels, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, showGrid, customTitle, cacheBuster]);
+  }, [username, graphType, range, theme, customLevels, customBackground, customBorder, presetBackground, presetBorder, isCustomized, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, showGrid, customTitle, cacheBuster]);
 
   const [origin] = useState(() =>
     typeof window !== 'undefined' ? window.location.origin : ''
@@ -363,7 +400,7 @@ export default function Home() {
                   Color Theme
                 </label>
                 <span className="text-[11px] font-medium text-zinc-500">
-                  {theme === 'custom' ? 'Custom' : Object.values(THEMES).find((t) => t.id === theme)?.name}
+                  {THEMES[theme]?.name ?? theme}{isCustomized ? ' • customized' : ''}
                 </span>
               </div>
               <div className="flex flex-wrap gap-2 p-3 rounded-lg bg-zinc-900/40 border border-zinc-800/80">
@@ -373,7 +410,7 @@ export default function Home() {
                     type="button"
                     title={t.name}
                     aria-pressed={theme === t.id}
-                    onClick={() => setTheme(t.id)}
+                    onClick={() => handleSelectTheme(t.id)}
                     className={`p-1 rounded-md transition-all ${
                       theme === t.id
                         ? 'ring-2 ring-zinc-300 ring-offset-2 ring-offset-zinc-950 scale-105'
@@ -389,71 +426,77 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Custom palette — visually distinct from presets so it's noticeable */}
-              <div className={`rounded-lg border transition-all overflow-hidden ${
-                theme === 'custom'
-                  ? 'border-emerald-500/50 bg-emerald-500/[0.06] shadow-[0_0_0_1px_rgba(16,185,129,0.25)]'
-                  : 'border-dashed border-zinc-700 bg-zinc-900/40 hover:border-zinc-500'
-              }`}>
-                <button
-                  type="button"
-                  title="Use custom palette"
-                  aria-pressed={theme === 'custom'}
-                  onClick={() => setTheme('custom')}
-                  className="w-full flex items-center gap-3 p-3 text-left"
-                >
-                  <span className="flex flex-1 h-7 overflow-hidden rounded-md border border-zinc-700/70">
-                    {customLevels.map((lvl, i) => (
-                      <span key={i} className="flex-1 h-full" style={{ backgroundColor: lvl }} />
-                    ))}
+              {/* Per-palette customization — selecting any palette loads it here for tweaking */}
+              <div className="rounded-lg border border-zinc-800/80 bg-zinc-900/40 p-3 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                    Customize {THEMES[theme]?.name ?? 'palette'}
                   </span>
-                  <span className="flex flex-col leading-tight shrink-0 min-w-[86px]">
-                    <span className={`text-xs font-semibold flex items-center gap-1.5 ${theme === 'custom' ? 'text-emerald-300' : 'text-zinc-200'}`}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor" />
-                        <circle cx="17.5" cy="10.5" r="0.5" fill="currentColor" />
-                        <circle cx="8.5" cy="7.5" r="0.5" fill="currentColor" />
-                        <circle cx="6.5" cy="12.5" r="0.5" fill="currentColor" />
-                        <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.93 0 1.65-.75 1.65-1.69 0-.44-.18-.84-.44-1.13-.26-.29-.43-.68-.43-1.12A1.68 1.68 0 0 1 14.46 16h2.08A5.46 5.46 0 0 0 22 10.5C21.95 5.84 17.5 2 12 2Z" />
-                      </svg>
-                      Custom
-                    </span>
-                    <span className="text-[11px] text-zinc-500">
-                      {theme === 'custom' ? 'Editing palette…' : 'Make your own palette'}
-                    </span>
-                  </span>
-                  <span className={`w-2 h-2 rounded-full shrink-0 transition-colors ${theme === 'custom' ? 'bg-emerald-400' : 'bg-zinc-700'}`} />
-                </button>
-
-                {theme === 'custom' && (
-                  <div className="grid grid-cols-5 gap-2 px-3 pb-3">
-                    {customLevels.map((lvl, idx) => (
-                      <label
-                        key={idx}
-                        title={`Level ${idx} — ${lvl}. Click to pick a color.`}
-                        className="group relative flex flex-col items-center gap-1 rounded-md cursor-pointer"
-                      >
-                        <span
-                          className="w-full h-9 rounded-md border border-zinc-600/80 shadow-inner transition-transform group-hover:scale-[1.03] group-active:scale-95"
-                          style={{ backgroundColor: lvl }}
-                        />
-                        <input
-                          type="color"
-                          value={lvl}
-                          onChange={(e) => {
-                            const u = [...customLevels] as [string, string, string, string, string];
-                            u[idx] = e.target.value;
-                            setCustomLevels(u);
-                          }}
-                          className="absolute inset-x-0 top-0 h-9 opacity-0 cursor-pointer"
-                          aria-label={`Pick color for level ${idx}`}
-                        />
-                        <span className="text-[10px] font-semibold text-zinc-400">L{idx}</span>
-                        <span className="text-[9px] font-mono uppercase text-zinc-500 -mt-1">{lvl}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
+                  {isCustomized && (
+                    <button
+                      type="button"
+                      onClick={handleResetPalette}
+                      className="text-[11px] font-medium text-zinc-400 hover:text-zinc-100 transition-colors"
+                    >
+                      Reset
+                    </button>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { label: 'Background', value: customBackground, set: setCustomBackground, hint: 'Card background' },
+                    { label: 'Border', value: customBorder, set: setCustomBorder, hint: 'Card border' },
+                  ].map(({ label, value, set, hint }) => (
+                    <label
+                      key={label}
+                      title={`${hint} — ${value}. Click to pick a color.`}
+                      className="group relative flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/60 px-2 py-1.5 cursor-pointer"
+                    >
+                      <span
+                        className="w-8 h-8 rounded-md border border-zinc-600/80 shadow-inner shrink-0 transition-transform group-hover:scale-[1.05]"
+                        style={{ backgroundColor: value }}
+                      />
+                      <span className="flex flex-col leading-tight min-w-0">
+                        <span className="text-[10px] font-semibold text-zinc-300">{label}</span>
+                        <span className="text-[9px] font-mono uppercase text-zinc-500">{value}</span>
+                      </span>
+                      <input
+                        type="color"
+                        value={value}
+                        onChange={(e) => set(e.target.value)}
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        aria-label={`Pick ${hint.toLowerCase()} color`}
+                      />
+                    </label>
+                  ))}
+                </div>
+                <div className="grid grid-cols-5 gap-2">
+                  {customLevels.map((lvl, idx) => (
+                    <label
+                      key={idx}
+                      title={`Level ${idx} — ${lvl}. Click to pick a color.`}
+                      className="group relative flex flex-col items-center gap-1 rounded-md cursor-pointer"
+                    >
+                      <span
+                        className="w-full h-9 rounded-md border border-zinc-600/80 shadow-inner transition-transform group-hover:scale-[1.03] group-active:scale-95"
+                        style={{ backgroundColor: lvl }}
+                      />
+                      <input
+                        type="color"
+                        value={lvl}
+                        onChange={(e) => {
+                          const u = [...customLevels] as [string, string, string, string, string];
+                          u[idx] = e.target.value;
+                          setCustomLevels(u);
+                        }}
+                        className="absolute inset-x-0 top-0 h-9 opacity-0 cursor-pointer"
+                        aria-label={`Pick color for level ${idx}`}
+                      />
+                      <span className="text-[10px] font-semibold text-zinc-400">L{idx}</span>
+                      <span className="text-[9px] font-mono uppercase text-zinc-500 -mt-1">{lvl}</span>
+                    </label>
+                  ))}
+                </div>
               </div>
             </div>
 

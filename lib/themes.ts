@@ -291,18 +291,50 @@ export const THEMES: Record<string, ThemeConfig> = {
 
 export const DEFAULT_THEME_ID = 'github-dark';
 
-export function getTheme(themeId?: string, customLevels?: string[]): ThemeConfig {
+export function getTheme(
+  themeId?: string,
+  customLevels?: string[],
+  overrides?: { background?: string; border?: string }
+): ThemeConfig {
   const base = (themeId && THEMES[themeId]) ? THEMES[themeId] : THEMES[DEFAULT_THEME_ID];
+
+  const background = normalizeHex(overrides?.background) ?? base.background;
+  const cardBorder = normalizeHex(overrides?.border) ?? base.cardBorder;
+  const bgCustomized = background.toLowerCase() !== base.background.toLowerCase();
+  const borderCustomized = cardBorder.toLowerCase() !== base.cardBorder.toLowerCase();
   
   if (customLevels && customLevels.length === 5) {
     return {
       ...base,
       id: 'custom',
       name: 'Custom',
+      background,
+      cardBorder,
       levels: customLevels as [string, string, string, string, string],
       accent: customLevels[4],
     };
   }
+
+  if (bgCustomized || borderCustomized) {
+    return {
+      ...base,
+      id: 'custom',
+      name: 'Custom',
+      background,
+      cardBorder,
+    };
+  }
   
   return base;
+}
+
+function normalizeHex(color?: string): string | undefined {
+  if (!color) return undefined;
+  const clean = color.trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(clean) || /^[0-9a-fA-F]{3}$/.test(clean)) {
+    return clean.length === 3
+      ? `#${clean.split('').map((c) => c + c).join('')}`.toLowerCase()
+      : `#${clean}`.toLowerCase();
+  }
+  return undefined;
 }

@@ -55,7 +55,10 @@ export function renderContributionCalendar(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
-  const theme = getTheme(options.theme, options.customLevels);
+  const theme = getTheme(options.theme, options.customLevels, {
+    background: options.customBackground,
+    border: options.customBorder,
+  });
   const hideTitle = options.hideTitle ?? false;
   const hideLegend = options.hideLegend ?? false;
   const hideTotal = options.hideTotal ?? false;
@@ -211,6 +214,11 @@ export function renderContributionCalendar(
   }
 
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+  // Inset by half the stroke width so the 1px border isn't clipped at the SVG
+  // viewport edge (which makes corners look uneven / cut off).
+  const bgRect = showBorder
+    ? `<rect x="0.5" y="0.5" width="${totalWidth - 1}" height="${totalHeight - 1}" rx="8" fill="${theme.background}" ${borderAttr} />`
+    : `<rect width="${totalWidth}" height="${totalHeight}" rx="8" fill="${theme.background}" />`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s GitView">
   <defs>
@@ -219,7 +227,7 @@ export function renderContributionCalendar(
       .day-cell:hover { opacity: 0.8; stroke: ${theme.textPrimary}; stroke-width: 0.75; }
     </style>
   </defs>
-  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${bgRect}
   ${headerSvg}
   <g class="month-labels">${monthLabelsSvg}</g>
   <g class="day-labels">${dayLabelsSvg}</g>
@@ -397,7 +405,10 @@ export function renderActivityGraph(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
-  const theme = getTheme(options.theme, options.customLevels);
+  const theme = getTheme(options.theme, options.customLevels, {
+    background: options.customBackground,
+    border: options.customBorder,
+  });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
   const showBorder = options.showBorder ?? true;
@@ -555,6 +566,11 @@ export function renderActivityGraph(
   const periodTotal = days.reduce((s, d) => s + d.count, 0);
 
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+  // Inset by half the stroke width so the 1px border isn't clipped at the SVG
+  // viewport edge (which makes corners look uneven / cut off).
+  const bgRect = showBorder
+    ? `<rect x="0.5" y="0.5" width="${totalWidth - 1}" height="${totalHeight - 1}" rx="8" fill="${theme.background}" ${borderAttr} />`
+    : `<rect width="${totalWidth}" height="${totalHeight}" rx="8" fill="${theme.background}" />`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s daily activity curve">
   <defs>
@@ -567,7 +583,7 @@ export function renderActivityGraph(
       <stop offset="100%" stop-color="${accentColor}" stop-opacity="1" />
     </linearGradient>
   </defs>
-  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${bgRect}
   
   ${!hideTitle ? `
     <g class="header">
@@ -622,13 +638,21 @@ export function renderStreakCard(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
-  const theme = getTheme(options.theme, options.customLevels);
+  const theme = getTheme(options.theme, options.customLevels, {
+    background: options.customBackground,
+    border: options.customBorder,
+  });
   const showBorder = options.showBorder ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
 
   const width = 540;
   const height = 195;
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
+  // Inset by half the stroke width so the 1px border isn't clipped at the SVG
+  // viewport edge (which makes corners look uneven / cut off).
+  const bgRect = showBorder
+    ? `<rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="10" fill="${theme.background}" ${borderAttr} />`
+    : `<rect width="${width}" height="${height}" rx="10" fill="${theme.background}" />`;
 
   const streak = data.streak || { current: 0, longest: 0, total: 0, dailyAverage: 0 };
   const total = data.totalContributions || streak.total;
@@ -663,7 +687,7 @@ export function renderStreakCard(
     </linearGradient>
   </defs>
 
-  <rect width="100%" height="100%" rx="10" fill="${theme.background}" ${borderAttr} />
+  ${bgRect}
 
   <!-- Card Header -->
   <g class="header">
@@ -731,7 +755,10 @@ export function renderBarChart(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
-  const theme = getTheme(options.theme, options.customLevels);
+  const theme = getTheme(options.theme, options.customLevels, {
+    background: options.customBackground,
+    border: options.customBorder,
+  });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
   const showBorder = options.showBorder ?? true;
@@ -788,9 +815,14 @@ export function renderBarChart(
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
   const titleText = options.title ? options.title : `${data.username}'s Monthly Breakdown`;
   const periodTotal = months.reduce((s, m) => s + m.count, 0);
+  // Inset by half the stroke width so the 1px border isn't clipped at the SVG
+  // viewport edge (which makes corners look uneven / cut off).
+  const bgRect = showBorder
+    ? `<rect x="0.5" y="0.5" width="${totalWidth - 1}" height="${totalHeight - 1}" rx="8" fill="${theme.background}" ${borderAttr} />`
+    : `<rect width="${totalWidth}" height="${totalHeight}" rx="8" fill="${theme.background}" />`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s monthly contributions">
-  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${bgRect}
   ${!hideTitle ? `
     <g class="header">
       <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
@@ -815,7 +847,10 @@ export function renderWeekdayChart(
   data: ContributionCalendarData,
   options: RenderOptions = {}
 ): string {
-  const theme = getTheme(options.theme, options.customLevels);
+  const theme = getTheme(options.theme, options.customLevels, {
+    background: options.customBackground,
+    border: options.customBorder,
+  });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
   const showBorder = options.showBorder ?? true;
@@ -866,9 +901,14 @@ export function renderWeekdayChart(
   const borderAttr = showBorder ? `stroke="${theme.cardBorder}" stroke-width="1"` : '';
   const titleText = options.title ? options.title : `${data.username}'s Day of Week Habit`;
   const periodTotal = counts.reduce((a, b) => a + b, 0);
+  // Inset by half the stroke width so the 1px border isn't clipped at the SVG
+  // viewport edge (which makes corners look uneven / cut off).
+  const bgRect = showBorder
+    ? `<rect x="0.5" y="0.5" width="${totalWidth - 1}" height="${totalHeight - 1}" rx="8" fill="${theme.background}" ${borderAttr} />`
+    : `<rect width="${totalWidth}" height="${totalHeight}" rx="8" fill="${theme.background}" />`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s weekday habits">
-  <rect width="100%" height="100%" rx="8" fill="${theme.background}" ${borderAttr} />
+  ${bgRect}
   ${!hideTitle ? `
     <g class="header">
       <text x="${paddingLeft}" y="30" font-size="14" font-weight="600" fill="${theme.textPrimary}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
@@ -911,8 +951,9 @@ export function renderContributionSvg(
 }
 
 export function renderErrorSvg(message: string, width = 600, height = 120): string {
+  // Inset by half the stroke width so the border isn't clipped at the edge.
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img">
-  <rect width="100%" height="100%" rx="8" fill="#0d1117" stroke="#da3633" stroke-width="1" />
+  <rect x="0.5" y="0.5" width="${width - 1}" height="${height - 1}" rx="8" fill="#0d1117" stroke="#da3633" stroke-width="1" />
   <circle cx="42" cy="60" r="18" fill="#f85149" opacity="0.15" />
   <path d="M42 50v14M42 68v2" stroke="#f85149" stroke-width="2.5" stroke-linecap="round" />
   <text x="76" y="55" font-size="14" font-weight="600" fill="#f85149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">

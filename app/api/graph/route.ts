@@ -6,6 +6,17 @@ import { GraphType, RenderOptions, TimeRange } from '@/lib/types';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+function normalizeHexParam(value?: string): string | undefined {
+  if (!value) return undefined;
+  const clean = value.trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(clean) || /^[0-9a-fA-F]{3}$/.test(clean)) {
+    return clean.length === 3
+      ? `#${clean.split('').map((c) => c + c).join('')}`.toLowerCase()
+      : `#${clean}`.toLowerCase();
+  }
+  return undefined;
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
@@ -40,6 +51,10 @@ export async function GET(request: NextRequest) {
   const showGrid = searchParams.get('grid') !== 'false';
   const title = searchParams.get('title') || undefined;
   const lineColor = searchParams.get('line_color') || undefined;
+  const customBackground = normalizeHexParam(
+    searchParams.get('bg_color') ?? searchParams.get('background') ?? undefined
+  );
+  const customBorder = normalizeHexParam(searchParams.get('border_color') ?? undefined);
 
   const customLevelsParam = searchParams.get('custom_levels');
   let customLevels: [string, string, string, string, string] | undefined = undefined;
@@ -72,6 +87,8 @@ export async function GET(request: NextRequest) {
     title,
     lineColor,
     customLevels,
+    customBackground,
+    customBorder,
   };
 
   const forceRefresh = searchParams.get('refresh') === '1' || searchParams.get('refresh') === 'true';

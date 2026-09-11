@@ -42,6 +42,8 @@ export interface RenderOptions {
   type?: GraphType;
   theme?: string;
   customLevels?: string[];
+  customBackground?: string;
+  customBorder?: string;
   range?: TimeRange;
   hideTitle?: boolean;
   hideLegend?: boolean;
