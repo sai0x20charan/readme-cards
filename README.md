@@ -1,6 +1,6 @@
-# GitView
+# GitHub Cards
 
-GitView turns a GitHub username into SVG cards you can embed in a README. Pick a chart type, pick a theme, tweak the colors, copy the markdown.
+GitHub Cards turns a GitHub username into SVG cards you can embed in a README. Pick a chart type, pick a theme, tweak the colors, copy the markdown.
 
 ## Chart types
 
@@ -15,7 +15,7 @@ All types render with `/api/graph?username=USERNAME&type=TYPE`.
 Example:
 
 ```markdown
-[![torvalds's GitView](https://your-domain/api/graph?username=torvalds&type=calendar)](https://github.com/torvalds)
+[![torvalds's GitHub Cards](https://your-domain/api/graph?username=torvalds&type=calendar)](https://github.com/torvalds)
 ```
 
 Swap `your-domain` for wherever you deploy this. Locally it is `http://localhost:3000`.

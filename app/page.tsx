@@ -94,7 +94,7 @@ const IconWeekdays = () => (
   </svg>
 );
 
-const USERNAME_STORAGE_KEY = 'gitview:username';
+const USERNAME_STORAGE_KEY = 'githubcards:username';
 const DEFAULT_USERNAME = 'torvalds';
 
 function getCachedUsername(): string {
@@ -254,11 +254,11 @@ export default function Home() {
 
   const cleanFullUrl = fullUrl.replace('&refresh=1', '');
   const embedCodes = {
-    markdown: `[![${username}'s GitView](${cleanFullUrl})](https://github.com/${username})`,
-    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s GitView" />\n</a>`,
+    markdown: `[![${username}'s GitHub Cards](${cleanFullUrl})](https://github.com/${username})`,
+    html: `<a href="https://github.com/${username}">\n  <img src="${cleanFullUrl}" alt="${username}'s GitHub Cards" />\n</a>`,
     url: cleanFullUrl,
     json: `${origin || ''}/api/data?username=${encodeURIComponent(username)}`,
-    action: `name: Update GitView SVG\non:\n  schedule:\n    - cron: '0 0 * * *'\n  workflow_dispatch:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Generate SVG\n        run: |\n          curl -s "${cleanFullUrl}" -o gitview.svg\n      - name: Commit and Push\n        run: |\n          git config --global user.name "github-actions[bot]"\n          git config --global user.email "github-actions[bot]@users.noreply.github.com"\n          git add gitview.svg\n          git commit -m "chore: update gitview" || exit 0\n          git push`,
+    action: `name: Update GitHub Cards SVG\non:\n  schedule:\n    - cron: '0 0 * * *'\n  workflow_dispatch:\n\njobs:\n  build:\n    runs-on: ubuntu-latest\n    steps:\n      - uses: actions/checkout@v4\n      - name: Generate SVG\n        run: |\n          curl -s "${cleanFullUrl}" -o githubcards.svg\n      - name: Commit and Push\n        run: |\n          git config --global user.name "github-actions[bot]"\n          git config --global user.email "github-actions[bot]@users.noreply.github.com"\n          git add githubcards.svg\n          git commit -m "chore: update githubcards" || exit 0\n          git push`,
   };
 
   const graphTypes: { id: GraphType; label: string; desc: string; Icon: () => React.JSX.Element }[] = [
@@ -275,7 +275,7 @@ export default function Home() {
       <header className="border-b border-zinc-800/60 backdrop-blur-md bg-zinc-950/80 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 h-14 sm:h-15 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <span className="text-base font-bold tracking-tight text-zinc-100">GitView</span>
+            <span className="text-base font-bold tracking-tight text-zinc-100">GitHub Cards</span>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
@@ -605,7 +605,7 @@ export default function Home() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={previewImgSrc}
-                      alt={`${username}'s GitView`}
+                      alt={`${username}'s GitHub Cards`}
                       className="w-full max-w-[880px] h-auto object-contain transition-all drop-shadow-md"
                     />
                   </div>
