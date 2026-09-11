@@ -138,7 +138,7 @@ export function renderContributionCalendar(
   // Header
   let headerSvg = '';
   if (!hideTitle) {
-    const titleText = options.title ? options.title : `${data.username}'s GitHub Cards`;
+    const titleText = options.title ? options.title : `${data.username}'s Readme Cards`;
     const periodContributions = days.reduce((sum, d) => sum + d.count, 0);
     const formattedTotal = periodContributions.toLocaleString();
 
@@ -220,7 +220,7 @@ export function renderContributionCalendar(
     ? `<rect x="0.5" y="0.5" width="${totalWidth - 1}" height="${totalHeight - 1}" rx="8" fill="${theme.background}" ${borderAttr} />`
     : `<rect width="${totalWidth}" height="${totalHeight}" rx="8" fill="${theme.background}" />`;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s GitHub Cards">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} ${totalHeight}" width="${totalWidth}" height="${totalHeight}" role="img" aria-label="${escapeXml(data.username)}'s Readme Cards">
   <defs>
     <style>
       .day-cell { transition: opacity 0.15s ease; }
@@ -957,7 +957,7 @@ export function renderErrorSvg(message: string, width = 600, height = 120): stri
   <circle cx="42" cy="60" r="18" fill="#f85149" opacity="0.15" />
   <path d="M42 50v14M42 68v2" stroke="#f85149" stroke-width="2.5" stroke-linecap="round" />
   <text x="76" y="55" font-size="14" font-weight="600" fill="#f85149" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
-    GitHub Cards Error
+    Readme Cards Error
   </text>
   <text x="76" y="75" font-size="12" fill="#8b949e" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
     ${escapeXml(message)}

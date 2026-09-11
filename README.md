@@ -1,6 +1,6 @@
-# GitHub Cards
+# Readme Cards
 
-GitHub Cards turns a GitHub username into SVG cards you can embed in a README. Pick a chart type, pick a theme, tweak the colors, copy the markdown.
+Readme Cards turns a GitHub username into SVG cards you can embed in a README. Pick a chart type, pick a theme, tweak the colors, copy the markdown.
 
 ![Contribution calendar](docs/previews/calendar.svg)
 ![Activity curve](docs/previews/graph.svg)
@@ -21,7 +21,7 @@ All types render with `/api/graph?username=USERNAME&type=TYPE`.
 Example:
 
 ```markdown
-[![torvalds's GitHub Cards](https://your-domain/api/graph?username=torvalds&type=calendar)](https://github.com/torvalds)
+[![torvalds's Readme Cards](https://your-domain/api/graph?username=torvalds&type=calendar)](https://github.com/torvalds)
 ```
 
 Swap `your-domain` for wherever you deploy this. Locally it is `http://localhost:3000`.

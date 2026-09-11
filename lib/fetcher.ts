@@ -89,7 +89,7 @@ async function fetchViaGraphQL(username: string, token: string): Promise<Contrib
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'User-Agent': 'githubcards-app',
+      'User-Agent': 'readme-cards-app',
     },
     body: JSON.stringify({ query, variables: { login: username } }),
   });

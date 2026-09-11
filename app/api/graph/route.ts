@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     const isNotFound = error instanceof UserNotFoundError;
-    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch GitHub Cards';
+    const errorMessage = error instanceof Error ? error.message : 'Failed to fetch Readme Cards';
     const status = isNotFound ? 404 : 500;
     const errorSvg = renderErrorSvg(errorMessage);
 

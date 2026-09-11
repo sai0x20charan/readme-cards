@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'GitHub Cards',
+  title: 'Readme Cards',
   description: 'Dynamic SVG contribution graphs for your GitHub profile README.',
 };
 
