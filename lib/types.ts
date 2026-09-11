@@ -33,6 +33,7 @@ export interface ThemeConfig {
   textMuted: string;
   levels: [string, string, string, string, string]; // [Level 0, Level 1, Level 2, Level 3, Level 4]
   accent?: string;
+  grid?: string; // grid/axis line color, defaults to cardBorder when unset
 }
 
 export type GraphType = 'calendar' | 'graph' | 'streak' | 'bar' | 'weekday';
@@ -44,6 +45,7 @@ export interface RenderOptions {
   customLevels?: string[];
   customBackground?: string;
   customBorder?: string;
+  customGrid?: string;
   range?: TimeRange;
   hideTitle?: boolean;
   hideLegend?: boolean;

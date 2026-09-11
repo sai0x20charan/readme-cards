@@ -108,6 +108,38 @@ function getCachedUsername(): string {
   return DEFAULT_USERNAME;
 }
 
+function parseHex(hex: string): [number, number, number] {
+  let clean = hex.trim().replace('#', '');
+  if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return [0, 0, 0];
+  return [(num >> 16) & 255, (num >> 8) & 255, num & 255];
+}
+
+function toHex(r: number, g: number, b: number): string {
+  const c = (v: number) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0');
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+
+function mixHex(a: string, b: string, t: number): string {
+  const [r1, g1, b1] = parseHex(a);
+  const [r2, g2, b2] = parseHex(b);
+  return toHex(r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t);
+}
+
+/* Builds a 5-step level ramp from one seed color, blended out of the
+   card background so the palette stays harmonious with the theme. */
+function generateRamp(seed: string, background: string): [string, string, string, string, string] {
+  const normalized = toHex(...parseHex(seed));
+  return [
+    mixHex(background, normalized, 0.1),
+    mixHex(background, normalized, 0.32),
+    mixHex(background, normalized, 0.55),
+    mixHex(background, normalized, 0.78),
+    normalized,
+  ];
+}
+
 export default function Home() {
   const [username, setUsername] = useState(getCachedUsername);
   const [inputVal, setInputVal] = useState(getCachedUsername);
@@ -133,12 +165,15 @@ export default function Home() {
   const presetLevels = THEMES[theme]?.levels ?? THEMES['github-dark'].levels;
   const presetBackground = THEMES[theme]?.background ?? THEMES['github-dark'].background;
   const presetBorder = THEMES[theme]?.cardBorder ?? THEMES['github-dark'].cardBorder;
+  const presetGrid = THEMES[theme]?.grid ?? presetBorder;
   const [customBackground, setCustomBackground] = useState(presetBackground);
   const [customBorder, setCustomBorder] = useState(presetBorder);
+  const [customGrid, setCustomGrid] = useState(presetGrid);
   const isCustomized =
     customLevels.some((c, i) => c.toLowerCase() !== presetLevels[i].toLowerCase()) ||
     customBackground.toLowerCase() !== presetBackground.toLowerCase() ||
-    customBorder.toLowerCase() !== presetBorder.toLowerCase();
+    customBorder.toLowerCase() !== presetBorder.toLowerCase() ||
+    customGrid.toLowerCase() !== presetGrid.toLowerCase();
 
   const handleSelectTheme = (id: string) => {
     setTheme(id);
@@ -147,6 +182,7 @@ export default function Home() {
       setCustomLevels([...t.levels] as [string, string, string, string, string]);
       setCustomBackground(t.background);
       setCustomBorder(t.cardBorder);
+      setCustomGrid(t.grid ?? t.cardBorder);
     }
   };
 
@@ -156,7 +192,14 @@ export default function Home() {
       setCustomLevels([...t.levels] as [string, string, string, string, string]);
       setCustomBackground(t.background);
       setCustomBorder(t.cardBorder);
+      setCustomGrid(t.grid ?? t.cardBorder);
     }
+  };
+
+  const [seedColor, setSeedColor] = useState('#39d353');
+
+  const handleGenerateFromSeed = () => {
+    setCustomLevels(generateRamp(seedColor, customBackground));
   };
 
   const [activeTab, setActiveTab] = useState<'markdown' | 'html' | 'url' | 'json' | 'action'>('markdown');
@@ -181,6 +224,9 @@ export default function Home() {
       if (customBorder.toLowerCase() !== presetBorder.toLowerCase()) {
         params.set('border_color', customBorder.replace('#', ''));
       }
+      if (customGrid.toLowerCase() !== presetGrid.toLowerCase()) {
+        params.set('grid_color', customGrid.replace('#', ''));
+      }
     }
     if (graphType === 'calendar' && radius !== 2.5) params.set('radius', radius.toString());
     if (graphType === 'graph') {
@@ -196,7 +242,7 @@ export default function Home() {
     if (customTitle.trim()) params.set('title', customTitle.trim());
     if (cacheBuster > 0) params.set('refresh', '1');
     return params.toString();
-  }, [username, graphType, range, theme, customLevels, customBackground, customBorder, presetBackground, presetBorder, isCustomized, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, showGrid, customTitle, cacheBuster]);
+  }, [username, graphType, range, theme, customLevels, customBackground, customBorder, customGrid, presetBackground, presetBorder, presetGrid, isCustomized, radius, hideTitle, hideLegend, hideTotal, hideStreak, showBorder, areaFill, showPoints, showGrid, customTitle, cacheBuster]);
 
   const [origin] = useState(() =>
     typeof window !== 'undefined' ? window.location.origin : ''
@@ -442,10 +488,39 @@ export default function Home() {
                     </button>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center gap-2 rounded-md border border-zinc-800 bg-zinc-950/60 px-2 py-1.5">
+                  <label
+                    title={`Seed color — ${seedColor}. Click to pick, then hit Generate.`}
+                    className="group relative block cursor-pointer"
+                  >
+                    <span
+                      className="block w-8 h-8 rounded-md border border-zinc-600/80 shadow-inner transition-transform group-hover:scale-[1.05]"
+                      style={{ backgroundColor: seedColor }}
+                    />
+                    <input
+                      type="color"
+                      value={seedColor}
+                      onChange={(e) => setSeedColor(e.target.value)}
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      aria-label="Pick seed color for palette generation"
+                    />
+                  </label>
+                  <span className="flex-1 text-[11px] leading-tight text-zinc-400">
+                    Build the five levels from one color
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGenerateFromSeed}
+                    className="text-[11px] font-semibold px-2.5 py-1.5 rounded-md bg-zinc-100 text-zinc-900 hover:bg-white active:scale-95 transition"
+                  >
+                    Generate
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
                   {[
                     { label: 'Background', value: customBackground, set: setCustomBackground, hint: 'Card background' },
                     { label: 'Border', value: customBorder, set: setCustomBorder, hint: 'Card border' },
+                    { label: 'Grid', value: customGrid, set: setCustomGrid, hint: 'Grid lines' },
                   ].map(({ label, value, set, hint }) => (
                     <label
                       key={label}
@@ -457,8 +532,8 @@ export default function Home() {
                         style={{ backgroundColor: value }}
                       />
                       <span className="flex flex-col leading-tight min-w-0">
-                        <span className="text-[10px] font-semibold text-zinc-300">{label}</span>
-                        <span className="text-[9px] font-mono uppercase text-zinc-500">{value}</span>
+                        <span className="text-[10px] font-semibold text-zinc-300 truncate">{label}</span>
+                        <span className="text-[9px] font-mono uppercase text-zinc-500 truncate">{value}</span>
                       </span>
                       <input
                         type="color"

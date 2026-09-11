@@ -58,6 +58,7 @@ export function renderContributionCalendar(
   const theme = getTheme(options.theme, options.customLevels, {
     background: options.customBackground,
     border: options.customBorder,
+    grid: options.customGrid,
   });
   const hideTitle = options.hideTitle ?? false;
   const hideLegend = options.hideLegend ?? false;
@@ -408,6 +409,7 @@ export function renderActivityGraph(
   const theme = getTheme(options.theme, options.customLevels, {
     background: options.customBackground,
     border: options.customBorder,
+    grid: options.customGrid,
   });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
@@ -416,6 +418,7 @@ export function renderActivityGraph(
   const showPoints = options.points ?? true;
   const showGrid = options.showGrid ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
+  const gridColor = theme.grid ?? theme.cardBorder;
 
   const { days } = filterDataByRange(data, options.range);
 
@@ -502,7 +505,7 @@ export function renderActivityGraph(
     for (const val of bounds.values) {
       const y = getY(val);
       gridLines.push(`
-        <line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${totalWidth - paddingRight}" y2="${y.toFixed(1)}" stroke="${theme.cardBorder}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
+        <line x1="${paddingLeft}" y1="${y.toFixed(1)}" x2="${totalWidth - paddingRight}" y2="${y.toFixed(1)}" stroke="${gridColor}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
       `);
     }
 
@@ -511,26 +514,26 @@ export function renderActivityGraph(
       for (let i = 0; i < points.length; i++) {
         const p = points[i];
         gridLines.push(`
-          <line x1="${p.x.toFixed(1)}" y1="${paddingTop}" x2="${p.x.toFixed(1)}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.2" stroke-dasharray="2" stroke-width="1" />
+          <line x1="${p.x.toFixed(1)}" y1="${paddingTop}" x2="${p.x.toFixed(1)}" y2="${baselineY}" stroke="${gridColor}" stroke-opacity="0.2" stroke-dasharray="2" stroke-width="1" />
         `);
       }
     } else {
       // Vertical grid lines accurately aligned with calendar month boundaries
       for (const m of filteredMonths) {
         gridLines.push(`
-          <line x1="${m.x.toFixed(1)}" y1="${paddingTop}" x2="${m.x.toFixed(1)}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
+          <line x1="${m.x.toFixed(1)}" y1="${paddingTop}" x2="${m.x.toFixed(1)}" y2="${baselineY}" stroke="${gridColor}" stroke-opacity="0.3" stroke-dasharray="2" stroke-width="1" />
         `);
       }
     }
 
     // Solid left and bottom coordinate axes
     gridLines.push(`
-      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-width="1.2" stroke-opacity="0.8" />
-      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-width="1.2" stroke-opacity="0.8" />
+      <line x1="${paddingLeft}" y1="${paddingTop}" x2="${paddingLeft}" y2="${baselineY}" stroke="${gridColor}" stroke-width="1.2" stroke-opacity="0.8" />
+      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${gridColor}" stroke-width="1.2" stroke-opacity="0.8" />
     `);
   } else {
     gridLines.push(`
-      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${theme.cardBorder}" stroke-opacity="0.6" stroke-width="1" />
+      <line x1="${paddingLeft}" y1="${baselineY}" x2="${totalWidth - paddingRight}" y2="${baselineY}" stroke="${gridColor}" stroke-opacity="0.6" stroke-width="1" />
     `);
   }
 
@@ -641,6 +644,7 @@ export function renderStreakCard(
   const theme = getTheme(options.theme, options.customLevels, {
     background: options.customBackground,
     border: options.customBorder,
+    grid: options.customGrid,
   });
   const showBorder = options.showBorder ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
@@ -758,11 +762,13 @@ export function renderBarChart(
   const theme = getTheme(options.theme, options.customLevels, {
     background: options.customBackground,
     border: options.customBorder,
+    grid: options.customGrid,
   });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
   const showBorder = options.showBorder ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
+  const gridColor = theme.grid ?? theme.cardBorder;
 
   const { days } = filterDataByRange(data, options.range);
 
@@ -835,7 +841,7 @@ export function renderBarChart(
       ` : ''}
     </g>
   ` : ''}
-  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${theme.cardBorder}" stroke-width="1" />
+  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${gridColor}" stroke-width="1" />
   <g class="bars">${bars.join('')}</g>
 </svg>`.trim();
 }
@@ -850,11 +856,13 @@ export function renderWeekdayChart(
   const theme = getTheme(options.theme, options.customLevels, {
     background: options.customBackground,
     border: options.customBorder,
+    grid: options.customGrid,
   });
   const hideTitle = options.hideTitle ?? false;
   const hideTotal = options.hideTotal ?? false;
   const showBorder = options.showBorder ?? true;
   const accentColor = options.lineColor || theme.accent || theme.levels[4];
+  const gridColor = theme.grid ?? theme.cardBorder;
 
   const { days } = filterDataByRange(data, options.range);
 
@@ -921,7 +929,7 @@ export function renderWeekdayChart(
       ` : ''}
     </g>
   ` : ''}
-  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${theme.cardBorder}" stroke-width="1" />
+  <line x1="${paddingLeft}" y1="${paddingTop + chartHeight}" x2="${totalWidth - paddingRight}" y2="${paddingTop + chartHeight}" stroke="${gridColor}" stroke-width="1" />
   <g class="bars">${bars.join('')}</g>
 </svg>`.trim();
 }

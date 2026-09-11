@@ -55,6 +55,7 @@ export async function GET(request: NextRequest) {
     searchParams.get('bg_color') ?? searchParams.get('background') ?? undefined
   );
   const customBorder = normalizeHexParam(searchParams.get('border_color') ?? undefined);
+  const customGrid = normalizeHexParam(searchParams.get('grid_color') ?? undefined);
 
   const customLevelsParam = searchParams.get('custom_levels');
   let customLevels: [string, string, string, string, string] | undefined = undefined;
@@ -89,6 +90,7 @@ export async function GET(request: NextRequest) {
     customLevels,
     customBackground,
     customBorder,
+    customGrid,
   };
 
   const forceRefresh = searchParams.get('refresh') === '1' || searchParams.get('refresh') === 'true';

@@ -294,14 +294,16 @@ export const DEFAULT_THEME_ID = 'github-dark';
 export function getTheme(
   themeId?: string,
   customLevels?: string[],
-  overrides?: { background?: string; border?: string }
+  overrides?: { background?: string; border?: string; grid?: string }
 ): ThemeConfig {
   const base = (themeId && THEMES[themeId]) ? THEMES[themeId] : THEMES[DEFAULT_THEME_ID];
 
   const background = normalizeHex(overrides?.background) ?? base.background;
   const cardBorder = normalizeHex(overrides?.border) ?? base.cardBorder;
+  const grid = normalizeHex(overrides?.grid) ?? base.grid;
   const bgCustomized = background.toLowerCase() !== base.background.toLowerCase();
   const borderCustomized = cardBorder.toLowerCase() !== base.cardBorder.toLowerCase();
+  const gridCustomized = (grid ?? base.cardBorder).toLowerCase() !== (base.grid ?? base.cardBorder).toLowerCase();
   
   if (customLevels && customLevels.length === 5) {
     return {
@@ -310,18 +312,20 @@ export function getTheme(
       name: 'Custom',
       background,
       cardBorder,
+      grid,
       levels: customLevels as [string, string, string, string, string],
       accent: customLevels[4],
     };
   }
 
-  if (bgCustomized || borderCustomized) {
+  if (bgCustomized || borderCustomized || gridCustomized) {
     return {
       ...base,
       id: 'custom',
       name: 'Custom',
       background,
       cardBorder,
+      grid,
     };
   }
   

@@ -34,11 +34,12 @@ Swap `your-domain` for wherever you deploy this. Locally it is `http://localhost
 
 There are 25 built-in themes, including `github-dark` (default), `github`, `dracula`, `ocean`, `tokyonight`, and `gruvbox`. Set one with `theme=NAME`.
 
-Any palette is editable in the studio. Click a theme, then change the background, border, or the five level colors. Edits are sent as overrides:
+Any palette is editable in the studio. Click a theme, then change the background, border, grid lines, or the five level colors. Shortcut: pick one seed color and hit Generate, and the studio builds the five levels from it. Edits are sent as overrides:
 
 - `custom_levels`: five hex colors, no `#`, comma separated. Example: `custom_levels=161b22,0e4429,006d32,26a641,39d353`
 - `bg_color`: card background. Example: `bg_color=0d1117`
 - `border_color`: card border. Example: `border_color=30363d`
+- `grid_color`: grid and axis lines. Example: `grid_color=30363d`
 - `line_color`: activity curve color. Example: `line_color=39d353`
 
 ## Parameters
@@ -52,6 +53,7 @@ Any palette is editable in the studio. Click a theme, then change the background
 | `custom_levels` | none | Five hex colors overriding the theme levels |
 | `bg_color` | none | Hex color overriding the card background |
 | `border_color` | none | Hex color overriding the card border |
+| `grid_color` | none | Hex color overriding grid and axis lines |
 | `line_color` | none | Hex color overriding the activity curve |
 | `radius` | `2.5` | Calendar cell corner radius, `0` to `5` |
 | `height` | `260` | Activity graph height, `220` to `600` |
